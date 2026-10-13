@@ -1,0 +1,31 @@
+name: CI # 1
+
+on: # 2
+  push:
+    branches: [main] # 3
+  pull_request: # 4
+
+jobs:
+  check: # 5
+    runs-on: ubuntu-latest # 6
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v7 # 7
+
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v7 # 8
+        with:
+          node-version: 24 # 9
+          cache: npm # 10
+
+      - name: Pasang dependensi
+        run: npm ci # 11
+
+      - name: Cek tipe (TypeScript)
+        run: npm run typecheck
+
+      - name: Lint (ESLint + Prettier)
+        run: npm run lint
+
+      - name: Cek format
+        run: npm run format:check
