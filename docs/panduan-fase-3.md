@@ -1,6 +1,6 @@
 # Panduan Fase 3: Autentikasi dan Peran (Scannest)
 
-**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 14 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.7 (Fase 3, tugas 3.0 sampai 3.9)
+**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 16 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.8 (Fase 3, tugas 3.0 sampai 3.9)
 
 Setelah Fase 3 selesai, Scannest punya **daftar, masuk, dan keluar yang sungguhan**: sesi bertahan setelah aplikasi ditutup, pengguna biasa tidak bisa membuka panel admin, dan akun yang dinonaktifkan otomatis dikeluarkan. Kamu juga akan memahami alur login di balik layar, karena seluruh fase berikutnya (kamera, unggah, dokumen, admin) bergantung pada satu hal: *siapa yang sedang masuk*.
 
@@ -149,6 +149,7 @@ Semua pekerjaan Fase 3 dilakukan di cabang `fase-3-auth`.
 - **Confirm email**: untuk pengembangan, matikan (panduan Supabase A5). Bila masih menyala, daftar akan menampilkan layar "Cek emailmu" dan kamu tidak akan langsung masuk. Kedua jalur sudah ditangani aplikasi, tetapi tautan konfirmasi di email belum bisa membuka aplikasi (lihat backlog B9), jadi matikan dulu agar uji lancar.
 - **Akun uji:** kamu sudah punya akunmu (admin) dan dua akun uji dari Fase 2. Pakai akun uji biasa untuk menguji peran `user`. Alamat email yang dipakai harus tampak valid; Supabase menolak domain contoh seperti `example.com` (kode `email_address_invalid`).
 - `.env` sudah berisi URL dan publishable key (tugas 0.9). Kunci `sb_secret_...` **tidak boleh** ada di sana.
+- **Periksa `.env` sekarang**, karena Fase 3 adalah pertama kalinya aplikasi benar-benar membacanya: di CMD jalankan `cd C:\scannest`, `dir /a .env*`, lalu `type .env`. Harus ada berkas bernama persis `.env` (bukan `.env.txt`) dengan dua baris yang **keduanya berisi nilai**: `EXPO_PUBLIC_SUPABASE_URL=https://REF.supabase.co` dan `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...`. Bila kosong, isi dari Dashboard **Connect** atau **Settings > API Keys** (panduan Supabase A3 dan A4).
 
 ---
 
@@ -1493,23 +1494,25 @@ Buka lewat Expo Go **SDK 54** di HP (sama seperti tugas 0.8). `--clear` memastik
 
 ### 10.2 Daftar uji di HP
 
+*Status 16 Oktober 2026: seluruh daftar dicentang berdasarkan laporan pengguna bahwa Fase 3 selesai 100%.*
+
 Centang satu per satu dan **laporkan hasilnya kepada saya**, terutama yang gagal.
 
-- [ ] Pertama kali dibuka (belum masuk): splash krem, lalu layar **Masuk** (bukan Dashboard).
-- [ ] Ketuk **Masuk** dengan isian kosong: muncul "Email wajib diisi" dan "Kata sandi wajib diisi".
-- [ ] Email tanpa `@`: muncul "Format email belum benar".
-- [ ] Email benar, sandi salah: kotak pesan "Email atau kata sandi salah."
-- [ ] Ketuk kolom Email dan Kata sandi: kolom **tidak tertutup keyboard** (catat bila tertutup atau ada celah kosong aneh).
-- [ ] Daftar akun baru (email valid, sandi 8+ karakter): langsung masuk ke Dashboard, kartu akun menampilkan nama dan email, peran **Pengguna**.
-- [ ] Di Supabase, **Table Editor > `profiles`**: ada baris baru dengan nama yang kamu isi (bukti trigger Fase 2 bekerja bersama aplikasi).
-- [ ] Daftar dengan email yang sama lagi: "Email ini sudah terdaftar. Silakan masuk."
-- [ ] Tutup paksa aplikasi (geser dari daftar aplikasi terbuka), buka lagi: **tetap masuk** (tanpa layar Masuk).
-- [ ] Ketuk **Keluar**: kembali ke layar Masuk. Tutup paksa lalu buka lagi: tetap di layar Masuk.
-- [ ] Nyalakan mode pesawat, ketuk **Masuk**: "Tidak bisa terhubung ke server...". Matikan mode pesawat, ketuk lagi: berhasil.
-- [ ] Masuk dengan **akun adminmu**: tampil label **Admin** dan tombol **Buka panel admin**; tombol itu membuka layar Panel admin.
-- [ ] Masuk dengan **akun biasa**: tidak ada tombol panel admin.
-- [ ] Uji akun nonaktif (10.3): setelah dinonaktifkan, aplikasi ditutup lalu dibuka lagi, kamu keluar dengan pesan "Akunmu dinonaktifkan..."; mencoba masuk lagi ditolak dengan pesan yang sama.
-- [ ] Layar Masuk dan Dashboard tidak tertutup status bar atau tombol navigasi sistem.
+- [x] Pertama kali dibuka (belum masuk): splash krem, lalu layar **Masuk** (bukan Dashboard).
+- [x] Ketuk **Masuk** dengan isian kosong: muncul "Email wajib diisi" dan "Kata sandi wajib diisi".
+- [x] Email tanpa `@`: muncul "Format email belum benar".
+- [x] Email benar, sandi salah: kotak pesan "Email atau kata sandi salah."
+- [x] Ketuk kolom Email dan Kata sandi: kolom **tidak tertutup keyboard** (catat bila tertutup atau ada celah kosong aneh).
+- [x] Daftar akun baru (email valid, sandi 8+ karakter): langsung masuk ke Dashboard, kartu akun menampilkan nama dan email, peran **Pengguna**.
+- [x] Di Supabase, **Table Editor > `profiles`**: ada baris baru dengan nama yang kamu isi (bukti trigger Fase 2 bekerja bersama aplikasi).
+- [x] Daftar dengan email yang sama lagi: "Email ini sudah terdaftar. Silakan masuk."
+- [x] Tutup paksa aplikasi (geser dari daftar aplikasi terbuka), buka lagi: **tetap masuk** (tanpa layar Masuk).
+- [x] Ketuk **Keluar**: kembali ke layar Masuk. Tutup paksa lalu buka lagi: tetap di layar Masuk.
+- [x] Nyalakan mode pesawat, ketuk **Masuk**: "Tidak bisa terhubung ke server...". Matikan mode pesawat, ketuk lagi: berhasil.
+- [x] Masuk dengan **akun adminmu**: tampil label **Admin** dan tombol **Buka panel admin**; tombol itu membuka layar Panel admin.
+- [x] Masuk dengan **akun biasa**: tidak ada tombol panel admin.
+- [x] Uji akun nonaktif (10.3): setelah dinonaktifkan, aplikasi ditutup lalu dibuka lagi, kamu keluar dengan pesan "Akunmu dinonaktifkan..."; mencoba masuk lagi ditolak dengan pesan yang sama.
+- [x] Layar Masuk dan Dashboard tidak tertutup status bar atau tombol navigasi sistem.
 
 ### 10.3 Uji akun nonaktif
 
@@ -1568,7 +1571,7 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 | Gejala | Kemungkinan penyebab dan solusi |
 |---|---|
-| Layar merah: "EXPO_PUBLIC_SUPABASE_URL dan ... belum diisi" | `.env` kosong atau salah nama. Isi sesuai `.env.example`, lalu `npx expo start --clear`. |
+| Layar merah: "EXPO_PUBLIC_SUPABASE_URL dan ... belum diisi" | Aplikasi tidak menemukan isi `.env`. Tiga penyebab yang saya uji: (1) nilainya **kosong** (`EXPO_PUBLIC_SUPABASE_URL=` tanpa isi, atau yang kamu isi justru `.env.example`); (2) berkasnya bernama `.env.txt` atau berada di folder lain (Windows menyembunyikan ekstensi; cek dengan `dir /a .env*` di `C:\scannest`, harus tampil `.env` persis); (3) Metro dijalankan sebelum `.env` diisi dan masih menyimpan cache lama. Perbaikan: isi dua baris tanpa spasi tambahan, simpan, hentikan Metro (`Ctrl+C`), jalankan `npx expo start --clear`, dan pastikan di awal log muncul `env: load .env` dan `env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Lalu muat ulang aplikasi di Expo Go (tekan `r` di terminal). Spasi di sekitar `=`, tanda kutip, dan BOM tidak menjadi masalah. |
 | Nilai `.env` baru tidak terbaca | Metro menyimpan cache. Hentikan, lalu `npx expo start --clear`. |
 | "Network request failed" atau "Tidak bisa terhubung ke server" padahal internet ada | URL di `.env` salah ketik (harus `https://REF.supabase.co`), atau proyek Free sedang di-pause: **Restore project** di Dashboard. |
 | "Invalid API key" | Publishable key salah salin atau terpotong. Ambil ulang dari **Settings > API Keys**. |
@@ -1588,15 +1591,17 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 ## 13. Checklist akhir Fase 3
 
+*Status 16 Oktober 2026: dicentang berdasarkan laporan pengguna bahwa Fase 3 selesai 100%.*
+
 Sama dengan "Selesai bila" Fase 3 di `ROADMAP.md`.
 
-- [ ] Dokumen roadmap dan panduan sudah di repo; berkas nyasar terhapus; PR Fase 2 digabung (3.0)
-- [ ] Daftar, masuk, keluar bekerja di HP dengan validasi dan pesan galat yang jelas (3.3, 3.7)
-- [ ] Login bertahan setelah aplikasi ditutup paksa (3.2, 3.4)
-- [ ] Pengguna biasa tidak bisa membuka rute admin; admin bisa (3.5)
-- [ ] Akun nonaktif dikeluarkan dan tidak bisa masuk (3.6)
-- [ ] `DevShortcuts` terhapus; keyboard tidak menutupi kolom, atau kendalanya tercatat (3.8)
-- [ ] `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau (3.9)
+- [x] Dokumen roadmap dan panduan sudah di repo; berkas nyasar terhapus; PR Fase 2 digabung (3.0)
+- [x] Daftar, masuk, keluar bekerja di HP dengan validasi dan pesan galat yang jelas (3.3, 3.7)
+- [x] Login bertahan setelah aplikasi ditutup paksa (3.2, 3.4)
+- [x] Pengguna biasa tidak bisa membuka rute admin; admin bisa (3.5)
+- [x] Akun nonaktif dikeluarkan dan tidak bisa masuk (3.6)
+- [x] `DevShortcuts` terhapus; keyboard tidak menutupi kolom, atau kendalanya tercatat (3.8)
+- [x] `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau (3.9)
 
 ---
 
