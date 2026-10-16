@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 
 import { LoadingScreen } from '@/components';
 import { AuthProvider, ProfileErrorScreen, useAuth } from '@/features/auth';
+import { ScanSessionProvider } from '@/features/scan';
 import { stackScreenOptions } from '@/theme';
 
 // Tahan splash screen sampai font dan status masuk selesai ditentukan, supaya layar masuk
@@ -31,7 +32,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <StatusBar style="dark" />
-      <RootNavigator />
+      <ScanSessionProvider>
+        <RootNavigator />
+      </ScanSessionProvider>
     </AuthProvider>
   );
 }

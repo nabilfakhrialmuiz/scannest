@@ -37,7 +37,15 @@
           "backgroundColor": "#FAF6F0"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scannest memakai kamera untuk memotret dokumen yang ingin kamu pindai.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

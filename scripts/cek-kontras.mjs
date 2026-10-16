@@ -33,6 +33,7 @@ const checks = [
   ['Ikon kotak pesan galat', colors.danger, colors.dangerSoft, 3],
   ['Ikon aktif di tab bar', colors.primary, colors.surface, 3],
   ['Garis kolom isian', colors.inputBorder, colors.surface, 3],
+  ['Ikon dan teks di atas pratinjau kamera', colors.onScrim, colors.scrim, 4.5],
 ];
 
 let failed = 0;
@@ -45,3 +46,4 @@ for (const [name, fg, bg, min] of checks) {
 
 console.log(failed === 0 ? '\nSemua pasangan lulus.' : `\n${failed} pasangan gagal.`);
 process.exit(failed === 0 ? 0 : 1);
+
