@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 
-import { DevShortcuts, EmptyState, Screen, ScreenHeader } from '@/components';
+import { EmptyState, Screen, ScreenHeader } from '@/components';
+import { AccountCard } from '@/features/auth';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -8,6 +9,7 @@ export default function DashboardScreen() {
   return (
     <Screen scroll>
       <ScreenHeader title="Dashboard" subtitle="Semua dokumenmu ada di sini" />
+      <AccountCard />
       <EmptyState
         icon="document-text-outline"
         title="Belum ada dokumen"
@@ -15,7 +17,6 @@ export default function DashboardScreen() {
         actionLabel="Mulai scan"
         onAction={() => router.navigate('/kamera')}
       />
-      {__DEV__ ? <DevShortcuts /> : null}
     </Screen>
   );
 }

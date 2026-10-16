@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/theme';
@@ -12,6 +19,8 @@ type ScreenProps = {
   edges?: Edge[];
   /** false: tanpa padding bawaan (untuk konten tepi ke tepi). */
   padded?: boolean;
+  /** true: konten naik saat keyboard terbuka. Pakai di layar berisi kolom isian. */
+  avoidKeyboard?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 };
 
@@ -20,20 +29,31 @@ export function Screen({
   scroll = false,
   edges = ['top'],
   padded = true,
+  avoidKeyboard = false,
   contentStyle,
 }: ScreenProps) {
+  const body = scroll ? (
+    <ScrollView
+      contentContainerStyle={[styles.scrollContent, padded && styles.padded, contentStyle]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={[styles.fill, padded && styles.padded, contentStyle]}>{children}</View>
+  );
+
   return (
     <SafeAreaView style={styles.root} edges={edges}>
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, padded && styles.padded, contentStyle]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
+      {avoidKeyboard ? (
+        // Dengan edge-to-edge (SDK 54), Android tidak lagi menaikkan layar sendiri saat keyboard
+        // terbuka, jadi kita yang mengaturnya: padding setinggi keyboard di bawah konten.
+        <KeyboardAvoidingView behavior="padding" style={styles.fill}>
+          {body}
+        </KeyboardAvoidingView>
       ) : (
-        <View style={[styles.fill, padded && styles.padded, contentStyle]}>{children}</View>
+        body
       )}
     </SafeAreaView>
   );
