@@ -693,13 +693,15 @@ Centang tugas 2.0 sampai 2.9 di `ROADMAP.md`.
 
 Sama dengan "Selesai bila" Fase 2 di `ROADMAP.md`.
 
-- [ ] `login` dan `link` berhasil (2.1)
-- [ ] `db push` berhasil; `migration list` menunjukkan LOCAL dan REMOTE sama; lima tabel ada di Table Editor (2.2)
-- [ ] Trigger terbukti: akun baru otomatis punya baris `profiles` (2.3)
-- [ ] RLS aktif di semua tabel, dipahami (2.5) dan hak kolom dipahami (2.6)
-- [ ] Akunmu admin (`role` = `admin`) (2.7)
-- [ ] `rls_smoke.sql` menunjukkan **34 lulus, 0 gagal** (2.8)
-- [ ] Migrasi tersimpan di repo; berkas nyasar sudah dihapus; PR digabung dan CI hijau (2.0, 2.9)
+*Status 16 Oktober 2026: dicentang berdasarkan laporan pengguna (tugas 2.1 sampai 2.8 pada 14 Oktober, penutup 2.0 dan 2.9 lewat tugas 3.0 pada 16 Oktober).*
+
+- [x] `login` dan `link` berhasil (2.1)
+- [x] `db push` berhasil; `migration list` menunjukkan LOCAL dan REMOTE sama; lima tabel ada di Table Editor (2.2)
+- [x] Trigger terbukti: akun baru otomatis punya baris `profiles` (2.3)
+- [x] RLS aktif di semua tabel, dipahami (2.5) dan hak kolom dipahami (2.6)
+- [x] Akunmu admin (`role` = `admin`) (2.7)
+- [x] `rls_smoke.sql` menunjukkan **34 lulus, 0 gagal** (2.8)
+- [x] Migrasi tersimpan di repo; berkas nyasar sudah dihapus; PR digabung dan CI hijau (2.0, 2.9)
 
 ---
 

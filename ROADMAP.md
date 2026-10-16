@@ -3,9 +3,9 @@
 Aplikasi Android untuk memindai dokumen, merapikan hasilnya, dan menyimpannya di cloud.
 Stack: Expo SDK 54 (React Native), Supabase, Cloudinary.
 
-- Versi dokumen: 0.7
-- Terakhir diperbarui: 2026-10-14
-- Fase berjalan: **Fase 3 (Autentikasi dan peran)**, panduan `docs/panduan-fase-3.md`. Fase 0, 1 selesai; Fase 2 selesai kecuali penutupnya (tugas 2.0 dan 2.9: dokumen roadmap/panduan belum masuk repo dan empat berkas nyasar masih ada, diselesaikan di tugas 3.0). Centang berdasarkan laporan pengguna. Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-supabase.md`
+- Versi dokumen: 0.8
+- Terakhir diperbarui: 2026-10-16
+- Fase berjalan: **Fase 4 (Kamera dan sesi scan)**, panduan `docs/panduan-fase-4.md`. Fase 0 sampai 3 selesai (centang berdasarkan laporan pengguna; Fase 3 dilaporkan selesai 100% pada 2026-10-16, termasuk penutup Fase 2 di tugas 3.0). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-supabase.md`
 
 ---
 
@@ -69,6 +69,10 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 | K20 | Pembatas rute | `Stack.Protected` bawaan Expo Router | Pengalihan otomatis saat status masuk berubah | Hanya di klien; `redirectTo` baru ada di SDK 58, jadi tujuan pengalihan ditentukan anchor `(tabs)` dan layar pertama yang diizinkan. Keamanan data tetap di RLS |
 | K21 | Sumber peran | Kolom `profiles.role`, dimuat sekali per masuk dan saat aplikasi kembali aktif | Satu sumber kebenaran; kolom dikunci hak tulis di Fase 2 | Satu permintaan tambahan per masuk |
 | K22 | Cara keluar | `signOut({ scope: 'local' })` | Tidak mengeluarkan perangkat lain; tetap membuang sesi lokal saat offline (diuji) | Sesi di server baru berakhir saat kedaluwarsa |
+| K23 | Penyimpanan sesi scan | State di memori (React context), bukan AsyncStorage | Android boleh membersihkan cache kapan saja, jadi URI tersimpan bisa menunjuk berkas hilang; Fase 5 mengunggah per halaman segera sehingga halaman terunggah aman di database | Sesi hilang bila aplikasi ditutup paksa atau dimatikan Android |
+| K24 | Batas halaman per sesi | 30 halaman (`HALAMAN_MAKS` di `ukuran.ts`) | Membatasi memori dan kuota Cloudinary Free | Dokumen yang lebih panjang harus dibagi; angka mudah diubah |
+| K25 | Urut ulang halaman | Tombol naik dan turun, bukan seret-lepas | Tanpa paket gestur, jalan di Expo Go, mudah diakses pembaca layar | Kurang luwes untuk puluhan halaman; seret-lepas di backlog B11 |
+| K26 | Normalisasi foto | `takePictureAsync({ quality: 1 })` tanpa `skipProcessing`; lalu perkecil bila lebar > 2000 dan simpan JPEG 0,85 | Kamera memutar piksel sesuai orientasi (kode sumber `expo-camera` Android); manipulator menyimpan ulang tanpa bergantung pada EXIF | Dua kali penyimpanan JPEG sedikit menurunkan mutu; perilaku Android asli belum terbukti sampai uji HP |
 
 ### Dampak ke diagram yang sudah dibuat
 
@@ -210,9 +214,9 @@ Panduan rinci: `docs/panduan-fase-1.md`. Nomor tugas di sini sama dengan nomor t
 
 ### Fase 2 — Database Supabase dan keamanan
 
-Panduan rinci: `docs/panduan-fase-2.md`. Status 2026-10-14: tugas 2.1 sampai 2.8 selesai (dilaporkan pengguna, termasuk uji RLS 34 lulus 0 gagal); 2.0 dan 2.9 menunggu penutup di tugas 3.0. Nomor tugas di sini sama dengan nomor tugas di panduan. Kerjakan di cabang `fase-2-database`. Migrasi dan tes RLS **sudah ditulis dan diuji** di PostgreSQL 16 tiruan Supabase (34 lulus, 0 gagal); pekerjaanmu menerapkannya ke proyek online lewat jalur CLI (K18), memahaminya, dan mengujinya dengan dua akun. Belum diuji oleh Claude: proyek Supabase sungguhan dan Postgres 17.
+Panduan rinci: `docs/panduan-fase-2.md`. Status 2026-10-14: tugas 2.1 sampai 2.8 selesai (dilaporkan pengguna, termasuk uji RLS 34 lulus 0 gagal); 2.0 dan 2.9 ditutup di tugas 3.0 (laporan pengguna 2026-10-16). Nomor tugas di sini sama dengan nomor tugas di panduan. Kerjakan di cabang `fase-2-database`. Migrasi dan tes RLS **sudah ditulis dan diuji** di PostgreSQL 16 tiruan Supabase (34 lulus, 0 gagal); pekerjaanmu menerapkannya ke proyek online lewat jalur CLI (K18), memahaminya, dan mengujinya dengan dua akun. Belum diuji oleh Claude: proyek Supabase sungguhan dan Postgres 17.
 
-- [ ] 2.0 Persiapan. **Belum tuntas (cek repo 2026-10-14):** `main` masih memuat empat berkas nyasar dan tidak ada cabang `fase-2-database`; dikerjakan di tugas 3.0. Cabang `fase-2-database`; hapus empat berkas nyasar yang masih ter-track di akar repo (`tatus`, `h -u origin main`, `(`, `router.push(item.href)}`) dengan `git rm`; cek `npx supabase --version`. Siapkan database password dan Project Ref.
+- [x] 2.0 Persiapan. Sempat tertunda (cek repo 2026-10-14: `main` masih memuat empat berkas nyasar); ditutup di tugas 3.0 (laporan pengguna 2026-10-16). Cabang `fase-2-database`; hapus empat berkas nyasar yang masih ter-track di akar repo (`tatus`, `h -u origin main`, `(`, `router.push(item.href)}`) dengan `git rm`; cek `npx supabase --version`. Siapkan database password dan Project Ref.
 - [x] 2.1 CLI Supabase: `npx supabase login`, lalu `npx supabase link --project-ref REF`. (Status 2026-10-14: folder `supabase/` dan paket `supabase` sudah ada di repo, jadi `install` dan `init` **tidak** diulang.)
 - [x] 2.2 `npx supabase db push --dry-run`, lalu `npx supabase db push`: migrasi 1 (`supabase/migrations/20261010120000_init_schema.sql`) membuat enum dan lima tabel sesuai bagian 2. Cek dengan `npx supabase migration list` dan Table Editor. Indeks `halaman_dokumen.dokumen_id` sudah tercakup constraint unik `(dokumen_id, urutan)`.
 - [x] 2.3 Trigger `handle_new_user` (sudah ada di migrasi 1). Uji: tambah pengguna di Dashboard, baris `profiles` muncul otomatis.
@@ -224,38 +228,45 @@ Panduan rinci: `docs/panduan-fase-2.md`. Status 2026-10-14: tugas 2.1 sampai 2.8
 - [x] 2.6 Cegah eskalasi lewat hak akses per kolom (sudah ada di migrasi 1): pengguna tidak bisa mengubah `role`, `is_aktif`, atau `jumlah_halaman`.
 - [x] 2.7 Jadikan akunmu admin lewat SQL Editor Supabase (`update public.profiles set role = 'admin' where ...`), bukan lewat aplikasi. Email asli tidak ditulis di repo.
 - [x] 2.8 Uji RLS dengan `supabase/tests/rls_smoke.sql` (dua akun uji, email diganti hanya di salinan SQL Editor). Target: **34 lulus, 0 gagal**. Skrip sengaja berakhir dengan pesan galat berisi laporan; datamu tidak berubah.
-- [ ] 2.9 **Belum tuntas:** pengguna melaporkan commit dan PR penutup tidak dijalankan karena `ROADMAP.md` dan `docs/` belum pernah dimasukkan ke folder proyek; dikerjakan di tugas 3.0. Uji dari luar dengan `curl` memakai publishable key (opsional), commit dokumen, pull request, CI hijau, merge.
+- [x] 2.9 Sempat tertunda: commit dan PR penutup tidak dijalankan karena `ROADMAP.md` dan `docs/` belum pernah dimasukkan ke folder proyek; ditutup di tugas 3.0 (laporan pengguna 2026-10-16). Uji dari luar dengan `curl` memakai publishable key (opsional), commit dokumen, pull request, CI hijau, merge.
 
 **Selesai bila:** lima tabel ada di proyek online, `migration list` menunjukkan LOCAL dan REMOTE sama, pengujian dua akun menunjukkan 34 lulus 0 gagal, migrasi tersimpan di repo, berkas nyasar terhapus, PR digabung dengan CI hijau.
 
 ### Fase 3 — Autentikasi dan peran
 
-Panduan rinci: `docs/panduan-fase-3.md`. Nomor tugas di sini sama dengan nomor tugas di panduan (bagian panduan disusun menurut urutan pengerjaan, jadi tugas 3.3, 3.4, dan 3.7 muncul di dua bagian). Kerjakan di cabang `fase-3-auth`. Kodenya sudah teruji sebagai aplikasi web melawan server Supabase tiruan (39 skenario lulus) dan urutan langkahnya diputar ulang dengan 0 galat typecheck di tiap tahap; belum diuji di HP dan di proyek Supabase sungguhan.
+Panduan rinci: `docs/panduan-fase-3.md`. Nomor tugas di sini sama dengan nomor tugas di panduan (bagian panduan disusun menurut urutan pengerjaan, jadi tugas 3.3, 3.4, dan 3.7 muncul di dua bagian). Kerjakan di cabang `fase-3-auth`. Kodenya sudah teruji sebagai aplikasi web melawan server Supabase tiruan (39 skenario lulus) dan urutan langkahnya diputar ulang dengan 0 galat typecheck di tiap tahap; status 2026-10-16: **selesai 100% menurut laporan pengguna** (uji HP tugas 3.9 dilakukan pengguna).
 
-- [ ] 3.0 Tutup Fase 2 dan persiapan. Salin `ROADMAP.md` dan folder `docs/` ke repo, `git rm` empat berkas nyasar (`tatus`, `h -u origin main`, `(`, `router.push(item.href)}`), commit di cabang `fase-2-database`, PR, CI hijau, merge (menutup 2.0 dan 2.9). Lalu cabang `fase-3-auth`. Cek *Confirm email* di Supabase (dimatikan selama pengembangan).
-- [ ] 3.1 Pasang paket: `npx expo install @supabase/supabase-js @react-native-async-storage/async-storage react-native-url-polyfill`, lalu `npm install zod`. **Koreksi dari v0.6:** `expo-sqlite` diganti AsyncStorage karena dokumentasi Supabase 2026-10-14 memakai AsyncStorage (K19).
-- [ ] 3.2 `src/lib/env.ts` (membaca `.env`, gagal cepat bila kosong) dan `src/lib/supabase.ts` (klien dengan sesi di AsyncStorage, `autoRefreshToken`, `persistSession`, `processLock`, pembaruan token mengikuti `AppState`).
-- [ ] 3.3 Validasi zod (`src/features/auth/schemas.ts`: email, sandi minimal 8, nama maksimal 80) dan layar daftar serta masuk sungguhan, dengan `Banner` untuk galat formulir.
-- [ ] 3.4 Context sesi `AuthProvider` dan `useAuth()`: sesi, `profiles.role`, status `loading`/`signedOut`/`signedIn`/`error`; profil dimuat lewat effect (bukan di dalam callback `onAuthStateChange`).
-- [ ] 3.5 Route guard dengan `Stack.Protected` di `app/_layout.tsx`: belum masuk hanya ke `(auth)`; `admin/` hanya untuk `role = admin`; splash ditahan sampai status jelas (K20).
-- [ ] 3.6 Akun `is_aktif = false` (atau profil tidak ada) otomatis dikeluarkan dengan pesan jelas; profil dicek ulang saat aplikasi kembali ke layar depan.
-- [ ] 3.7 Keluar (`AccountCard` di Dashboard, `scope: 'local'`, K22) dan penanganan galat: pesan Indonesia untuk sandi salah, email terdaftar, jaringan putus, batas kirim; layar `ProfileErrorScreen` dengan Coba lagi.
-- [ ] 3.8 `[dari Fase 1]` Hapus `DevShortcuts` dan berkasnya; Dashboard memakai `AccountCard`; `Screen` mendapat prop `avoidKeyboard` (`KeyboardAvoidingView`) agar keyboard tidak menutupi kolom (belum teruji di Android asli); `cek-kontras` bertambah menjadi 15 pasangan.
-- [ ] 3.9 Uji di HP memakai daftar di panduan 10.2 (termasuk uji akun nonaktif lewat SQL Editor), lalu commit, pull request, CI hijau, merge.
+- [x] 3.0 Tutup Fase 2 dan persiapan. Salin `ROADMAP.md` dan folder `docs/` ke repo, `git rm` empat berkas nyasar (`tatus`, `h -u origin main`, `(`, `router.push(item.href)}`), commit di cabang `fase-2-database`, PR, CI hijau, merge (menutup 2.0 dan 2.9). Lalu cabang `fase-3-auth`. Cek *Confirm email* di Supabase (dimatikan selama pengembangan).
+- [x] 3.1 Pasang paket: `npx expo install @supabase/supabase-js @react-native-async-storage/async-storage react-native-url-polyfill`, lalu `npm install zod`. **Koreksi dari v0.6:** `expo-sqlite` diganti AsyncStorage karena dokumentasi Supabase 2026-10-14 memakai AsyncStorage (K19).
+- [x] 3.2 `src/lib/env.ts` (membaca `.env`, gagal cepat bila kosong) dan `src/lib/supabase.ts` (klien dengan sesi di AsyncStorage, `autoRefreshToken`, `persistSession`, `processLock`, pembaruan token mengikuti `AppState`).
+- [x] 3.3 Validasi zod (`src/features/auth/schemas.ts`: email, sandi minimal 8, nama maksimal 80) dan layar daftar serta masuk sungguhan, dengan `Banner` untuk galat formulir.
+- [x] 3.4 Context sesi `AuthProvider` dan `useAuth()`: sesi, `profiles.role`, status `loading`/`signedOut`/`signedIn`/`error`; profil dimuat lewat effect (bukan di dalam callback `onAuthStateChange`).
+- [x] 3.5 Route guard dengan `Stack.Protected` di `app/_layout.tsx`: belum masuk hanya ke `(auth)`; `admin/` hanya untuk `role = admin`; splash ditahan sampai status jelas (K20).
+- [x] 3.6 Akun `is_aktif = false` (atau profil tidak ada) otomatis dikeluarkan dengan pesan jelas; profil dicek ulang saat aplikasi kembali ke layar depan.
+- [x] 3.7 Keluar (`AccountCard` di Dashboard, `scope: 'local'`, K22) dan penanganan galat: pesan Indonesia untuk sandi salah, email terdaftar, jaringan putus, batas kirim; layar `ProfileErrorScreen` dengan Coba lagi.
+- [x] 3.8 `[dari Fase 1]` Hapus `DevShortcuts` dan berkasnya; Dashboard memakai `AccountCard`; `Screen` mendapat prop `avoidKeyboard` (`KeyboardAvoidingView`) agar keyboard tidak menutupi kolom (belum teruji di Android asli); `cek-kontras` bertambah menjadi 15 pasangan.
+- [x] 3.9 Uji di HP memakai daftar di panduan 10.2 (termasuk uji akun nonaktif lewat SQL Editor), lalu commit, pull request, CI hijau, merge.
 
 **Selesai bila:** daftar, masuk, dan keluar bekerja di HP; login bertahan setelah aplikasi ditutup paksa; user biasa tidak bisa membuka rute admin; akun nonaktif dikeluarkan dan tidak bisa masuk; `DevShortcuts` terhapus; `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau.
 
 ### Fase 4 — Kamera dan sesi scan
 
-- [ ] 4.1 Pasang `expo-camera` dan `expo-image-manipulator` (`npx expo install`).
-- [ ] 4.2 Izin kamera: jelaskan alasannya; jika ditolak, tombol menuju `Linking.openSettings()`.
-- [ ] 4.3 `CameraView` dengan tombol jepret, flash (off/on/auto), dan grid panduan.
-- [ ] 4.4 Layar tinjau: **Pakai foto** atau **Ulang**.
-- [ ] 4.5 Normalisasi sebelum unggah memakai API manipulator SDK 54 (`ImageManipulator.manipulate(uri).resize({ width: 2000 })` → `renderAsync()` → `saveAsync({ format: JPEG, compress: 0.85 })`). Langkah ini juga memastikan orientasi EXIF sudah menyatu di piksel **(uji dengan beberapa foto portrait dan landscape)**.
-- [ ] 4.6 Sesi scan di context: daftar halaman sementara, tombol **Tambah halaman**, hapus atau urutkan ulang halaman.
-- [ ] 4.7 Aturan memori: simpan hanya URI file, bukan base64.
+Panduan rinci: `docs/panduan-fase-4.md`. Nomor tugas di sini sama dengan nomor tugas di panduan. Kerjakan di cabang `fase-4-kamera`. Kodenya sudah teruji sebagai aplikasi web dengan kamera tiruan Chromium (39 skenario lulus) dan 11 uji unit untuk aturan ukuran foto; urutan langkahnya diputar ulang dengan 0 galat typecheck di tiap tahap. Belum diuji di HP: dialog izin asli, fokus, flash, dan terutama **orientasi foto portrait dan landscape** (uji 12.2 nomor 7 sampai 9).
 
-**Selesai bila:** bisa memotret beberapa halaman dalam satu sesi, hasilnya dinormalisasi dan siap diunggah.
+**Pemetaan dari v0.7:** 4.1 tetap; izin kamera (4.2 lama) dikerjakan di 4.2 dan 4.6; kamera (4.3 lama) menjadi 4.6; tinjau (4.4 lama) menjadi 4.7; normalisasi (4.5 lama) menjadi 4.3; sesi (4.6 lama) menjadi 4.4; aturan memori (4.7 lama) dipenuhi 4.3 dan 4.4. Urutannya kini mengikuti urutan pengerjaan.
+
+- [ ] 4.0 Tutup Fase 3 dan persiapan: pastikan `main` bersih dan Fase 3 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-4-kamera`.
+- [ ] 4.1 Pasang `expo-camera` dan `expo-image-manipulator` (`npx expo install expo-camera expo-image-manipulator`). Tipe SDK 54 diperiksa langsung di `node_modules` (dokumentasi daring untuk manipulator memuat API SDK 58).
+- [ ] 4.2 Izin kamera: plugin `expo-camera` di `app.json` (teks izin Indonesia, `microphonePermission: false`, `recordAudioAndroid: false`); layar penjelasan sebelum dialog sistem; bila ditolak permanen, tombol **Buka pengaturan** (`Linking.openSettings()`); izin dicek ulang saat aplikasi kembali aktif.
+- [ ] 4.3 Aturan ukuran dan normalisasi (`ukuran.ts`, `normalisasi.ts`): perkecil hanya bila lebar > 2000 (tidak pernah memperbesar), simpan ulang JPEG 0,85 lewat `ImageManipulator.manipulate(uri)` → `renderAsync()` → `saveAsync()`; foto diambil tanpa `skipProcessing` agar orientasi menyatu di piksel (K26).
+- [ ] 4.4 Sesi scan di context (`ScanSessionProvider`, `useScanSession`): daftar halaman berisi URI saja, tambah, hapus, urutkan ulang; batas 30 halaman (K24); sesi dibuang saat pengguna keluar atau berganti (K23).
+- [ ] 4.5 Warna `scrim` dan `onScrim` serta komponen `IconButton` (48 dp, berlabel); `cek-kontras` bertambah menjadi 16 pasangan.
+- [ ] 4.6 `CameraView` dengan tombol jepret, flash tiga mode (mati, hidup, otomatis), grid sepertiga yang bisa disembunyikan; kamera dilepas saat layar kehilangan fokus (hanya satu pratinjau aktif).
+- [ ] 4.7 Layar tinjau (**Pakai foto** atau **Ulang**) dan daftar halaman (**Tambah halaman**, naik, turun, hapus dengan konfirmasi inline, **Mulai sesi baru**); urut ulang dengan tombol (K25).
+- [ ] 4.8 Layar Kamera merakit tiga tahap (kamera, tinjau, daftar); kartu "Sesi scan berjalan" di Dashboard; `ScanSessionProvider` dipasang di `app/_layout.tsx`.
+- [ ] 4.9 Uji di HP memakai daftar di panduan 12.2 (**laporkan hasil orientasi nomor 7 sampai 9**), lalu commit, pull request, CI hijau, merge.
+
+**Selesai bila:** bisa memotret beberapa halaman dalam satu sesi, hasilnya dinormalisasi (lebar maksimum 2000, JPEG) dan tegak untuk portrait dan landscape di HP; izin kamera ditangani (penjelasan, tolak, tolak permanen, kembali dari pengaturan); sesi bisa ditambah, diurutkan, dan dihapus; hanya URI yang disimpan; `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau.
 
 ### Fase 5 — Upload ke Cloudinary
 
@@ -354,6 +365,9 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | B8 | Pindahkan fungsi bantu `security definer` (`is_admin` dan kawan-kawan) dari skema `public` ke skema privat; dokumentasi Supabase menyarankan fungsi seperti ini tidak berada di skema yang terekspos. Risiko sekarang kecil (hanya pengguna login yang boleh memanggil, dan hanya mengungkap status dirinya sendiri), jadi migrasi yang sudah diuji tidak diubah dulu | P2 | Fase 9 (tugas 9.2) | Usulan |
 | B9 | Konfirmasi email dan "Lupa kata sandi" lewat deep link `scannest://` (tautan email membuka aplikasi); nyalakan lagi *Confirm email* sebelum rilis | P2 | Fase 9 | Usulan |
 | B10 | Enkripsi sesi: SecureStore menyimpan kunci AES, sesi terenkripsi di AsyncStorage (pola dokumentasi Supabase) | P2 | Fase 9 | Usulan |
+| B11 | Urut ulang halaman dengan seret-lepas (butuh paket gestur) | P3 | Setelah Fase 9 | Usulan |
+| B12 | Bersihkan berkas foto sementara di cache saat halaman dihapus atau sesi dibuang | P2 | Fase 9 | Usulan |
+| B13 | Peringatan konsol `@supabase/supabase-js` 2.117.3: opsi `lock` (`processLock`) sudah *deprecated* dan akan dihapus di v3, klien kini mengoordinasikan pembaruan sesi tanpa kunci; evaluasi menghapus opsinya (terlihat di peramban uji, belum dicek di HP) | P2 | Fase 9 | Usulan |
 
 ---
 
@@ -386,6 +400,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 2026-10-16 | 0.8 | Fase 3 dicentang (3.0 sampai 3.9) berdasarkan laporan pengguna; 2.0 dan 2.9 ikut dicentang karena ditutup di tugas 3.0; fase berjalan menjadi Fase 4. Fase 4 diperinci menjadi tugas 4.0 sampai 4.9 (urutan mengikuti urutan pengerjaan; pemetaan dari v0.7 dicatat di bagian Fase 4) dan panduan Fase 4 ditulis. Ditambah K23 sampai K26 dan backlog B11 sampai B13. **Koreksi dan temuan:** dokumentasi daring `expo-image-manipulator` memuat API SDK 58, jadi tipe SDK 54 diperiksa langsung di `node_modules` (`manipulate`, `renderAsync`, `saveAsync`, `release` tersedia di versi 14.0.8); uji menemukan cacat sesi scan yang muncul lagi setelah keluar lalu masuk dengan akun yang sama dan sudah diperbaiki (state sesi diatur ulang saat pemilik berubah); `cek-kontras` menjadi 16 pasangan |
 | 2026-10-14 | 0.7 | Fase 2 dicentang (2.1 sampai 2.8, laporan pengguna) kecuali 2.0 dan 2.9: pengguna menyampaikan `ROADMAP.md` dan panduan fase 0 sampai 2 tidak pernah dimasukkan ke folder proyek, dan cek repo memastikan `main` berhenti di PR #1 dengan empat berkas nyasar masih ada; penutupnya dipindah ke tugas 3.0. Fase 3 diperinci menjadi 3.0 sampai 3.9 dan panduan Fase 3 ditulis. **Koreksi:** tugas 3.1 lama menyebut `expo-sqlite`, dokumentasi Supabase terbaru memakai AsyncStorage (K19). Ditambah K19 sampai K22, backlog B9 (konfirmasi email dan reset sandi via deep link) dan B10 (enkripsi sesi). `cek-kontras` menangkap cacat pada kotak pesan galat rancangan awal (teks merah di latar merah muda 4,37:1) sehingga teks kotak pesan memakai warna teks utama; pasangan menjadi 15 |
 | 2026-10-14 | 0.6 | Fase 0 (0.0 sampai 0.9) dan Fase 1 (1.0 sampai 1.9) dicentang berdasarkan laporan pengguna; fase berjalan menjadi Fase 2. **Koreksi panduan Fase 1:** bagian 4.6 dan 7.10 keliru menyatakan galat `tsc` yang tersisa hanya di `app/`; sebenarnya `DevShortcuts` (typedRoutes) ikut galat sampai berkas rute dibuat dan `npx expo start` menyegarkan tipe. Tabel galat per tahap hasil replay (9, 16, 9, 11, 0) ditambahkan di bagian 13.1; setiap blok kode kini berlabel `Berkas:` dengan status berkas baru atau lama (jawaban atas pertanyaan 10.2: blok itu untuk `app/dokumen/[id].tsx` dan `app/editor/[halamanId].tsx`). Pengecekan repo 2026-10-14: empat berkas nyasar (`tatus`, `h -u origin main`, `(`, `router.push(item.href)}`, akibat kode ditempel ke terminal) masih ter-track dan dihapus di tugas 2.0. Fase 2 diperinci menjadi tugas 2.0 sampai 2.9 dan panduan Fase 2 ditulis; ditambah K18 (jalur CLI) dan B8 (fungsi `security definer`). Sumber Supabase ditambahkan |
 | 2026-10-13 | 0.5 | Run CI pertama gagal: `ci.yml` ter-commit kosong (0 byte; galat "No event triggers defined in `on`"), ditemukan dengan membaca repo publik dan halaman run. Tugas 0.7 dikembalikan ke belum selesai; panduan Fase 0 diperbarui (Langkah 2b cek berkas, 6.1 pembacaan run merah, 6.2 berkas nyasar `tatus` dan `h -u origin main`, bagian 7 Expo Go SDK 54 dengan sumber). `app.json` `name` ternyata masih `scannest`. Panduan Fase 1 ditulis dan Fase 1 di roadmap diperinci jadi tugas 1.0 sampai 1.9. Koreksi dari verifikasi: palet usulan gagal kontras 4,5:1 (K16), rute `(admin)` bentrok dengan Dashboard di `/` (K14), alias `@/` ke `src/` (K17), tema terang saja untuk v1 (K15); tugas 3.8 ditambah untuk menghapus `DevShortcuts` |
@@ -423,3 +438,6 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 - Supabase, Password security (diakses 2026-10-14): https://supabase.com/docs/guides/auth/password-security
 - Expo Router, Protected routes (diakses 2026-10-14): https://docs.expo.dev/router/advanced/protected/
 - Expo, konfigurasi app.json dan edge-to-edge (diakses 2026-10-14): https://docs.expo.dev/versions/v54.0.0/config/app/ dan https://expo.dev/blog/edge-to-edge-display-now-streamlined-for-android
+- Expo, Camera SDK 54 (diakses 2026-10-16): https://docs.expo.dev/versions/v54.0.0/sdk/camera/
+- Expo, ImageManipulator (halaman terbaru memuat API kontekstual; tipe SDK 54 diperiksa di `node_modules`, diakses 2026-10-16): https://docs.expo.dev/versions/latest/sdk/imagemanipulator/
+- Expo Router, hook `useFocusEffect` (diakses 2026-10-16): https://docs.expo.dev/router/reference/hooks/
