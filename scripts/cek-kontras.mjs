@@ -28,6 +28,9 @@ const checks = [
   ['Teks tombol bahaya', colors.onDanger, colors.danger, 4.5],
   ['Pesan galat di latar', colors.danger, colors.background, 4.5],
   ['Pesan galat di kartu', colors.danger, colors.surface, 4.5],
+  ['Teks di kotak pesan galat', colors.text, colors.dangerSoft, 4.5],
+  ['Teks di kotak pesan info', colors.text, colors.primarySoft, 4.5],
+  ['Ikon kotak pesan galat', colors.danger, colors.dangerSoft, 3],
   ['Ikon aktif di tab bar', colors.primary, colors.surface, 3],
   ['Garis kolom isian', colors.inputBorder, colors.surface, 3],
 ];

@@ -30,8 +30,8 @@ declare
   v_gagal    integer;
 begin
   -- ---------- Persiapan (berjalan sebagai pemilik database) ----------
-  select id into v_a from auth.users where email = 'GANTI_EMAIL_A';
-  select id into v_b from auth.users where email = 'GANTI_EMAIL_B';
+  select id into v_a from auth.users where email = 'uji-a@contoh.com';
+  select id into v_b from auth.users where email = 'uji-b@contoh.com';
   if v_a is null or v_b is null then
     raise exception 'Akun uji tidak ditemukan. Periksa email A dan B di bagian atas file.';
   end if;
