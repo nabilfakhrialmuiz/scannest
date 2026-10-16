@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { stackScreenOptions } from '@/theme';
 
 // Folder biasa `admin` (bukan grup) agar URL-nya /admin dan tidak bentrok dengan Dashboard di "/".
-// Pembatasan akses khusus admin dipasang di Fase 3.
+// Akses dibatasi di app/_layout.tsx (Stack.Protected): hanya akun dengan role admin yang bisa masuk.
 export default function AdminLayout() {
   return (
     <Stack screenOptions={stackScreenOptions}>
@@ -14,4 +14,3 @@ export default function AdminLayout() {
     </Stack>
   );
 }
-
