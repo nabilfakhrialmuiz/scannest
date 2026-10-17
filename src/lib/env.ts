@@ -3,6 +3,8 @@
 // nama dinamis), karena Expo mengganti teks tersebut dengan nilainya saat aplikasi dibundel.
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const cloudinaryCloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const cloudinaryUploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 // Gagal cepat dengan pesan jelas bila .env belum diisi, daripada galat samar dari Supabase.
 if (!supabaseUrl || !supabasePublishableKey) {
@@ -12,5 +14,12 @@ if (!supabaseUrl || !supabasePublishableKey) {
   );
 }
 
-export const env = { supabaseUrl, supabasePublishableKey } as const;
+export const env = {
+  supabaseUrl,
+  supabasePublishableKey,
+  // Cloudinary sengaja tidak membuat aplikasi gagal saat dibuka: login dan kamera tetap jalan,
+  // dan pesan jelas baru muncul saat pengguna menekan Simpan dokumen (lihat cloudinary.ts).
+  cloudinaryCloudName: cloudinaryCloudName?.trim() || null,
+  cloudinaryUploadPreset: cloudinaryUploadPreset?.trim() || null,
+} as const;
 

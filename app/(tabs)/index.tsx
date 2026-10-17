@@ -9,6 +9,7 @@ import { colors, typography } from '@/theme';
 export default function DashboardScreen() {
   const router = useRouter();
   const { pages } = useScanSession();
+  const belum = pages.filter((p) => p.status !== 'tersimpan').length;
 
   return (
     <Screen scroll>
@@ -18,7 +19,9 @@ export default function DashboardScreen() {
         <Card>
           <Text style={styles.judul}>Sesi scan berjalan</Text>
           <Text style={styles.isi}>
-            {pages.length} halaman menunggu, belum disimpan sebagai dokumen.
+            {belum > 0
+              ? `${belum} dari ${pages.length} halaman belum disimpan sebagai dokumen.`
+              : `Dokumen tersimpan (${pages.length} halaman).`}
           </Text>
           <Button title="Buka sesi scan" onPress={() => router.navigate('/kamera')} />
         </Card>
@@ -38,4 +41,3 @@ const styles = StyleSheet.create({
   judul: { ...typography.bodyStrong, color: colors.text },
   isi: { ...typography.body, color: colors.textMuted },
 });
-
