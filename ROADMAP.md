@@ -3,9 +3,9 @@
 Aplikasi Android untuk memindai dokumen, merapikan hasilnya, dan menyimpannya di cloud.
 Stack: Expo SDK 54 (React Native), Supabase, Cloudinary.
 
-- Versi dokumen: 0.8
-- Terakhir diperbarui: 2026-10-16
-- Fase berjalan: **Fase 4 (Kamera dan sesi scan)**, panduan `docs/panduan-fase-4.md`. Fase 0 sampai 3 selesai (centang berdasarkan laporan pengguna; Fase 3 dilaporkan selesai 100% pada 2026-10-16, termasuk penutup Fase 2 di tugas 3.0). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-supabase.md`
+- Versi dokumen: 0.9
+- Terakhir diperbarui: 2026-10-17
+- Fase berjalan: **Fase 5 (Upload ke Cloudinary)**, panduan `docs/panduan-fase-5.md`. Fase 0 sampai 4 selesai (centang berdasarkan laporan pengguna; Fase 4 dilaporkan selesai pada 2026-10-17, hasil uji orientasi foto belum dirinci pengguna). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-fase-4.md`, `docs/panduan-supabase.md`
 
 ---
 
@@ -69,14 +69,18 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 | K20 | Pembatas rute | `Stack.Protected` bawaan Expo Router | Pengalihan otomatis saat status masuk berubah | Hanya di klien; `redirectTo` baru ada di SDK 58, jadi tujuan pengalihan ditentukan anchor `(tabs)` dan layar pertama yang diizinkan. Keamanan data tetap di RLS |
 | K21 | Sumber peran | Kolom `profiles.role`, dimuat sekali per masuk dan saat aplikasi kembali aktif | Satu sumber kebenaran; kolom dikunci hak tulis di Fase 2 | Satu permintaan tambahan per masuk |
 | K22 | Cara keluar | `signOut({ scope: 'local' })` | Tidak mengeluarkan perangkat lain; tetap membuang sesi lokal saat offline (diuji) | Sesi di server baru berakhir saat kedaluwarsa |
-| K23 | Penyimpanan sesi scan | State di memori (React context), bukan AsyncStorage | Android boleh membersihkan cache kapan saja, jadi URI tersimpan bisa menunjuk berkas hilang; Fase 5 mengunggah per halaman segera sehingga halaman terunggah aman di database | Sesi hilang bila aplikasi ditutup paksa atau dimatikan Android |
+| K23 | Penyimpanan sesi scan | State di memori (React context), bukan AsyncStorage | Android boleh membersihkan cache kapan saja, jadi URI tersimpan bisa menunjuk berkas hilang; mitigasinya diubah di v0.9 menjadi K27 (unggah saat **Simpan dokumen**, bukan per halaman) | Sesi hilang bila aplikasi ditutup paksa atau dimatikan Android sebelum disimpan |
 | K24 | Batas halaman per sesi | 30 halaman (`HALAMAN_MAKS` di `ukuran.ts`) | Membatasi memori dan kuota Cloudinary Free | Dokumen yang lebih panjang harus dibagi; angka mudah diubah |
 | K25 | Urut ulang halaman | Tombol naik dan turun, bukan seret-lepas | Tanpa paket gestur, jalan di Expo Go, mudah diakses pembaca layar | Kurang luwes untuk puluhan halaman; seret-lepas di backlog B11 |
 | K26 | Normalisasi foto | `takePictureAsync({ quality: 1 })` tanpa `skipProcessing`; lalu perkecil bila lebar > 2000 dan simpan JPEG 0,85 | Kamera memutar piksel sesuai orientasi (kode sumber `expo-camera` Android); manipulator menyimpan ulang tanpa bergantung pada EXIF | Dua kali penyimpanan JPEG sedikit menurunkan mutu; perilaku Android asli belum terbukti sampai uji HP |
+| K27 | Kapan foto diunggah | Saat menekan **Simpan dokumen**, bukan langsung setelah **Pakai foto** | Pengguna bebas mengurutkan, menghapus, dan memberi judul dulu; tidak ada unggahan terbuang; urutan di database langsung final; unggahan tanpa tanda tangan tidak bisa menghapus aset | Foto yang belum disimpan ikut hilang bila aplikasi ditutup paksa. Mengoreksi harapan K23 v0.8 |
+| K28 | Urutan unggah | Berurutan per halaman, berhenti di kegagalan pertama; ulang hanya halaman yang gagal | Kegagalan jaringan atau preset hampir selalu berlaku untuk semua halaman; halaman sebelumnya pasti tersimpan | Satu halaman bermasalah menahan halaman sesudahnya sampai diulang atau dihapus |
+| K29 | Hasil unggahan disimpan di sesi | Balasan Cloudinary (`hasil`) ikut disimpan per halaman; bila database gagal, ulang hanya penulisan database | Tidak ada unggahan ganda dan kuota tidak terbuang | Logika tambahan (status `diunggah`) |
+| K30 | `.env` Cloudinary opsional saat aplikasi dibuka | `cloudinaryCloudName` dan `cloudinaryUploadPreset` bernilai `null` bila kosong; pesan jelas muncul saat Simpan | Login dan kamera tetap bisa diuji sebelum 5.1 selesai | Salah ketik nama variabel baru ketahuan saat menyimpan |
 
 ### Dampak ke diagram yang sudah dibuat
 
-- **Flowchart dan activity diagram:** urutannya berubah. Foto diunggah dulu setelah "Pakai foto", baru dipercantik, karena efek dihitung Cloudinary dari foto yang sudah diunggah. Kotak "Auto-crop tepi dokumen" menjadi "Crop tepi dokumen (manual)".
+- **Flowchart dan activity diagram:** urutannya berubah. Foto diunggah dulu setelah **Simpan dokumen** (K27; sebelum v0.9 tertulis setelah "Pakai foto"), baru dipercantik, karena efek dihitung Cloudinary dari foto yang sudah diunggah. Kotak "Auto-crop tepi dokumen" menjadi "Crop tepi dokumen (manual)".
 - **ERD:** `USERS` → `profiles`, dan kolom `password_hash` serta `email` pindah ke Supabase Auth. Entitas lain tetap.
 - Diagram di folder `docs/` diperbarui di Fase 10.
 
@@ -251,34 +255,39 @@ Panduan rinci: `docs/panduan-fase-3.md`. Nomor tugas di sini sama dengan nomor t
 
 ### Fase 4 — Kamera dan sesi scan
 
-Panduan rinci: `docs/panduan-fase-4.md`. Nomor tugas di sini sama dengan nomor tugas di panduan. Kerjakan di cabang `fase-4-kamera`. Kodenya sudah teruji sebagai aplikasi web dengan kamera tiruan Chromium (39 skenario lulus) dan 11 uji unit untuk aturan ukuran foto; urutan langkahnya diputar ulang dengan 0 galat typecheck di tiap tahap. Belum diuji di HP: dialog izin asli, fokus, flash, dan terutama **orientasi foto portrait dan landscape** (uji 12.2 nomor 7 sampai 9).
+Panduan rinci: `docs/panduan-fase-4.md`. Nomor tugas di sini sama dengan nomor tugas di panduan. Kerjakan di cabang `fase-4-kamera`. Kodenya sudah teruji sebagai aplikasi web dengan kamera tiruan Chromium (39 skenario lulus) dan 11 uji unit untuk aturan ukuran foto; urutan langkahnya diputar ulang dengan 0 galat typecheck di tiap tahap. Status 2026-10-17: **selesai menurut laporan pengguna** (seluruh panduan Fase 4 dikerjakan). Pengguna belum merinci hasil uji HP untuk **orientasi foto portrait dan landscape** (12.2 nomor 7 sampai 9); panduan Fase 5 bagian 2 menanyakannya dan cacat orientasi, bila ada, diperbaiki sebelum Fase 6 (crop dan rotasi bergantung padanya).
 
 **Pemetaan dari v0.7:** 4.1 tetap; izin kamera (4.2 lama) dikerjakan di 4.2 dan 4.6; kamera (4.3 lama) menjadi 4.6; tinjau (4.4 lama) menjadi 4.7; normalisasi (4.5 lama) menjadi 4.3; sesi (4.6 lama) menjadi 4.4; aturan memori (4.7 lama) dipenuhi 4.3 dan 4.4. Urutannya kini mengikuti urutan pengerjaan.
 
-- [ ] 4.0 Tutup Fase 3 dan persiapan: pastikan `main` bersih dan Fase 3 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-4-kamera`.
-- [ ] 4.1 Pasang `expo-camera` dan `expo-image-manipulator` (`npx expo install expo-camera expo-image-manipulator`). Tipe SDK 54 diperiksa langsung di `node_modules` (dokumentasi daring untuk manipulator memuat API SDK 58).
-- [ ] 4.2 Izin kamera: plugin `expo-camera` di `app.json` (teks izin Indonesia, `microphonePermission: false`, `recordAudioAndroid: false`); layar penjelasan sebelum dialog sistem; bila ditolak permanen, tombol **Buka pengaturan** (`Linking.openSettings()`); izin dicek ulang saat aplikasi kembali aktif.
-- [ ] 4.3 Aturan ukuran dan normalisasi (`ukuran.ts`, `normalisasi.ts`): perkecil hanya bila lebar > 2000 (tidak pernah memperbesar), simpan ulang JPEG 0,85 lewat `ImageManipulator.manipulate(uri)` → `renderAsync()` → `saveAsync()`; foto diambil tanpa `skipProcessing` agar orientasi menyatu di piksel (K26).
-- [ ] 4.4 Sesi scan di context (`ScanSessionProvider`, `useScanSession`): daftar halaman berisi URI saja, tambah, hapus, urutkan ulang; batas 30 halaman (K24); sesi dibuang saat pengguna keluar atau berganti (K23).
-- [ ] 4.5 Warna `scrim` dan `onScrim` serta komponen `IconButton` (48 dp, berlabel); `cek-kontras` bertambah menjadi 16 pasangan.
-- [ ] 4.6 `CameraView` dengan tombol jepret, flash tiga mode (mati, hidup, otomatis), grid sepertiga yang bisa disembunyikan; kamera dilepas saat layar kehilangan fokus (hanya satu pratinjau aktif).
-- [ ] 4.7 Layar tinjau (**Pakai foto** atau **Ulang**) dan daftar halaman (**Tambah halaman**, naik, turun, hapus dengan konfirmasi inline, **Mulai sesi baru**); urut ulang dengan tombol (K25).
-- [ ] 4.8 Layar Kamera merakit tiga tahap (kamera, tinjau, daftar); kartu "Sesi scan berjalan" di Dashboard; `ScanSessionProvider` dipasang di `app/_layout.tsx`.
-- [ ] 4.9 Uji di HP memakai daftar di panduan 12.2 (**laporkan hasil orientasi nomor 7 sampai 9**), lalu commit, pull request, CI hijau, merge.
+- [x] 4.0 Tutup Fase 3 dan persiapan: pastikan `main` bersih dan Fase 3 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-4-kamera`.
+- [x] 4.1 Pasang `expo-camera` dan `expo-image-manipulator` (`npx expo install expo-camera expo-image-manipulator`). Tipe SDK 54 diperiksa langsung di `node_modules` (dokumentasi daring untuk manipulator memuat API SDK 58).
+- [x] 4.2 Izin kamera: plugin `expo-camera` di `app.json` (teks izin Indonesia, `microphonePermission: false`, `recordAudioAndroid: false`); layar penjelasan sebelum dialog sistem; bila ditolak permanen, tombol **Buka pengaturan** (`Linking.openSettings()`); izin dicek ulang saat aplikasi kembali aktif.
+- [x] 4.3 Aturan ukuran dan normalisasi (`ukuran.ts`, `normalisasi.ts`): perkecil hanya bila lebar > 2000 (tidak pernah memperbesar), simpan ulang JPEG 0,85 lewat `ImageManipulator.manipulate(uri)` → `renderAsync()` → `saveAsync()`; foto diambil tanpa `skipProcessing` agar orientasi menyatu di piksel (K26).
+- [x] 4.4 Sesi scan di context (`ScanSessionProvider`, `useScanSession`): daftar halaman berisi URI saja, tambah, hapus, urutkan ulang; batas 30 halaman (K24); sesi dibuang saat pengguna keluar atau berganti (K23).
+- [x] 4.5 Warna `scrim` dan `onScrim` serta komponen `IconButton` (48 dp, berlabel); `cek-kontras` bertambah menjadi 16 pasangan.
+- [x] 4.6 `CameraView` dengan tombol jepret, flash tiga mode (mati, hidup, otomatis), grid sepertiga yang bisa disembunyikan; kamera dilepas saat layar kehilangan fokus (hanya satu pratinjau aktif).
+- [x] 4.7 Layar tinjau (**Pakai foto** atau **Ulang**) dan daftar halaman (**Tambah halaman**, naik, turun, hapus dengan konfirmasi inline, **Mulai sesi baru**); urut ulang dengan tombol (K25).
+- [x] 4.8 Layar Kamera merakit tiga tahap (kamera, tinjau, daftar); kartu "Sesi scan berjalan" di Dashboard; `ScanSessionProvider` dipasang di `app/_layout.tsx`.
+- [x] 4.9 Uji di HP memakai daftar di panduan 12.2 (**laporkan hasil orientasi nomor 7 sampai 9**), lalu commit, pull request, CI hijau, merge.
 
 **Selesai bila:** bisa memotret beberapa halaman dalam satu sesi, hasilnya dinormalisasi (lebar maksimum 2000, JPEG) dan tegak untuk portrait dan landscape di HP; izin kamera ditangani (penjelasan, tolak, tolak permanen, kembali dari pengaturan); sesi bisa ditambah, diurutkan, dan dihapus; hanya URI yang disimpan; `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau.
 
 ### Fase 5 — Upload ke Cloudinary
 
-- [ ] 5.1 Di dashboard Cloudinary buat **unsigned upload preset**: folder `scannest`, `allowed_formats` = `jpg,png`, `disallow_public_id` = true, incoming transformation `c_limit,w_2000,h_2000`.
-- [ ] 5.2 `src/lib/cloudinary.ts`: fungsi `uploadImage(uri)` mengirim `multipart/form-data` (`file` + `upload_preset`) ke endpoint upload Cloudinary milik akunmu **(verifikasi endpoint di dokumentasi Upload API)**.
-- [ ] 5.3 Pakai `XMLHttpRequest` agar progress bisa ditampilkan.
-- [ ] 5.4 Validasi ukuran di aplikasi (usulan: tolak lebih dari 8 MB) karena preset tidak membatasi ukuran.
-- [ ] 5.5 Retry 2 kali dengan jeda bertahap, lalu pesan error yang jelas.
-- [ ] 5.6 Simpan hasil ke Supabase: buat `dokumen` (status `draft`), isi `halaman_dokumen` (`url_asli`, `url_hasil` awal = `url_asli`, `public_id`, `ukuran_byte`, `urutan`).
-- [ ] 5.7 Jika unggah halaman ke-N gagal, halaman sebelumnya tetap aman dan pengguna bisa mengulang hanya halaman yang gagal.
+Panduan rinci: `docs/panduan-fase-5.md`. Nomor 5.1 sampai 5.7 sama dengan v0.8 (isinya diperinci); 5.0, 5.8, dan 5.9 ditambahkan di v0.9. Kerjakan di cabang `fase-5-cloudinary`. Kodenya sudah teruji sebagai aplikasi web dengan kamera tiruan Chromium melawan **Cloudinary dan tabel database tiruan** (46 skenario) dan 45 uji unit; urutan langkahnya diputar ulang dengan 0 galat typecheck setelah tiap berkas, kecuali satu galat sementara di antara 8.1 dan 8.3 yang dijelaskan di panduan. **Belum terbukti** (hanya bisa dibuktikan pengguna): Cloudinary dan Supabase sungguhan, pengiriman `FormData` berisi `{uri,name,type}` di Android, nama bidang balasan dan kalimat galat Cloudinary, serta orientasi foto di HP.
 
-**Selesai bila:** foto dari kamera muncul di Cloudinary dan tercatat di tabel `halaman_dokumen` dengan `public_id` yang benar.
+- [ ] 5.0 Tutup Fase 4 dan persiapan: `main` bersih dan Fase 4 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-5-cloudinary`; laporkan hasil uji orientasi Fase 4 (12.2 nomor 7 sampai 9).
+- [ ] 5.1 Di dashboard Cloudinary buat **unsigned upload preset**: Signing mode *Unsigned*, folder `scannest`, `allowed_formats` = `jpg,png`, `disallow_public_id` = true, incoming transformation `c_limit,w_2000,h_2000`. Buktikan dengan `curl` (unggah berhasil, lalu dua uji penolakan: format salah dan `public_id` buatan sendiri) dan kirim JSON hasilnya; rincian parameter metode `upload` tidak terbaca utuh dari dokumentasi, jadi buktinya `curl`, bukan asumsi.
+- [ ] 5.2 `.env` (`EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME`, `EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; keduanya publik, **tanpa API secret**) dan `src/lib/cloudinary.ts`: `uploadImage(uri)` mengirim `multipart/form-data` (hanya `file` dan `upload_preset`) ke `https://api.cloudinary.com/v1_1/<cloud_name>/image/upload`; balasan dicek dengan zod (`public_id`, `secure_url`, `bytes`, `width`, `height`).
+- [ ] 5.3 `XMLHttpRequest` (bukan `fetch`) agar kemajuan unggahan tampil lewat `upload.onprogress`; batas waktu 60 detik per percobaan; bisa dibatalkan (`AbortController`).
+- [ ] 5.4 Tolak foto lebih dari 8 MB sebelum diunggah (Free plan Cloudinary 10 MB per gambar dan 25 megapiksel; preset tidak membatasi ukuran).
+- [ ] 5.5 Ulang 2 kali dengan jeda 1 dan 3 detik hanya untuk galat jaringan, batas waktu, dan server (5xx, 429); galat preset atau format tidak diulang; pesan Bahasa Indonesia per jenis galat.
+- [ ] 5.6 Simpan ke Supabase (`src/features/dokumen/api.ts`, `useSimpanDokumen`): buat `dokumen` (status `draft`, judul bawaan "Dokumen <tanggal jam>" atau isian pengguna) sekali, lalu isi `halaman_dokumen` (`url_asli`, `url_hasil` awal = `url_asli`, `public_id`, `ukuran_byte`, `urutan`); kode galat `23505` dianggap sudah tersimpan bila barisnya sama.
+- [ ] 5.7 Jika halaman ke-N gagal, halaman sebelumnya tetap aman dan pengguna bisa mengulang hanya halaman yang gagal (K28, K29); urutan dan urut ulang dikunci setelah dokumen dibuat.
+- [ ] 5.8 Rakit layar Kamera dan Dashboard: kolom judul, tombol **Simpan dokumen** / **Coba lagi (N halaman)** / **Mulai sesi baru**, status dan progress per halaman, kartu "Sesi scan berjalan" di Dashboard menampilkan sisa yang belum disimpan.
+- [ ] 5.9 Uji di HP memakai daftar di panduan 10.2 dan cek baris di tabel (`select` di SQL Editor), lalu commit, pull request, CI hijau, merge.
+
+**Selesai bila:** foto dari kamera muncul di Cloudinary (folder `scannest`) dan tercatat di tabel `halaman_dokumen` dengan `public_id` yang benar dan `urutan` sesuai tampilan; kegagalan di tengah tidak menghilangkan halaman yang sudah tersimpan dan tidak membuat unggahan ganda; tidak ada rahasia (API secret, `sb_secret_`, `service_role`) di aplikasi atau repo; `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau.
 
 ### Fase 6 — Percantik foto (non-destruktif)
 
@@ -368,6 +377,8 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | B11 | Urut ulang halaman dengan seret-lepas (butuh paket gestur) | P3 | Setelah Fase 9 | Usulan |
 | B12 | Bersihkan berkas foto sementara di cache saat halaman dihapus atau sesi dibuang | P2 | Fase 9 | Usulan |
 | B13 | Peringatan konsol `@supabase/supabase-js` 2.117.3: opsi `lock` (`processLock`) sudah *deprecated* dan akan dihapus di v3, klien kini mengoordinasikan pembaruan sesi tanpa kunci; evaluasi menghapus opsinya (terlihat di peramban uji, belum dicek di HP) | P2 | Fase 9 | Usulan |
+| B14 | Unggahan **bertanda tangan** lewat Edge Function (API secret hanya di server) menggantikan unsigned preset, agar preset yang terbaca dari APK tidak bisa dipakai orang lain menghabiskan kuota | P2 | Fase 9 | Usulan |
+| B15 | Aset yatim di Cloudinary (terunggah tetapi tidak tercatat, misalnya aplikasi ditutup di tengah penyimpanan) dan berkas foto sementara; pembersihan lewat Edge Function (penghapusan butuh permintaan bertanda tangan, K6) | P2 | Fase 8 sampai 9 | Usulan |
 
 ---
 
@@ -378,7 +389,8 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | Kuota Cloudinary (25 kredit) habis | Akun bisa dinonaktifkan | Pantau dashboard tiap fase 5–7, kecilkan thumbnail, batasi jumlah kombinasi efek |
 | Proyek Supabase di-pause | Aplikasi tidak bisa login | Aktifkan B4, atau buka proyek tiap minggu |
 | Sintaks transformasi Cloudinary berbeda dari dugaan | Fase 6 tertunda | Tugas 6.1 memverifikasi lewat browser sebelum coding |
-| Orientasi EXIF membuat crop meleset | Hasil crop salah | Normalisasi di 4.5 dan uji foto portrait/landscape |
+| Orientasi EXIF membuat crop meleset | Hasil crop salah | Normalisasi di 4.3 dan uji foto portrait/landscape (laporan hasil 12.2 nomor 7 sampai 9 ditunggu di 5.0) |
+| Unsigned preset terbaca dari APK (K5) | Orang lain mengunggah ke akunmu dan menghabiskan kuota | Batasan preset (`allowed_formats`, `disallow_public_id`, transformasi masuk), pantau dashboard, B14 (unggahan bertanda tangan) |
 | Secret ikut ter-commit | Akun disalahgunakan | `.env` di `.gitignore`, hanya kunci publik di aplikasi, tinjau di 9.2 |
 | Scope membengkak | Rilis molor | Aturan prioritas bagian 0; improvisasi non-P0 masuk antrean |
 
@@ -400,6 +412,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 2026-10-17 | 0.9 | Fase 4 dicentang (4.0 sampai 4.9) berdasarkan laporan pengguna (hasil uji orientasi foto belum dirinci); fase berjalan menjadi Fase 5. Fase 5 diperinci menjadi tugas 5.0 sampai 5.9 dan panduan Fase 5 ditulis. Ditambah K27 sampai K30, backlog B14 dan B15, dan baris risiko unsigned preset. **Koreksi dan temuan:** (1) K23 v0.8 berharap Fase 5 mengunggah per halaman segera setelah "Pakai foto"; diganti K27 (unggah saat Simpan dokumen) karena unggahan tanpa tanda tangan tidak bisa dihapus dan urut ulang akan meninggalkan unggahan terbuang; catatan diagram ikut diubah. (2) Rincian parameter metode `upload` pada dokumentasi Cloudinary tidak terbaca utuh (halaman referensi memuat navigasi saja), jadi tugas 5.1 mewajibkan bukti `curl` oleh pengguna. (3) Klaim "0 galat typecheck di tiap tahap" ternyata keliru saat diputar ulang: ada satu galat sementara di `kamera.tsx` antara langkah 8.1 dan 8.3; panduan menjelaskannya. (4) Rujukan "normalisasi di 4.5" pada tabel risiko diperbaiki menjadi 4.3 |
 | 2026-10-16 | 0.8 | Fase 3 dicentang (3.0 sampai 3.9) berdasarkan laporan pengguna; 2.0 dan 2.9 ikut dicentang karena ditutup di tugas 3.0; fase berjalan menjadi Fase 4. Fase 4 diperinci menjadi tugas 4.0 sampai 4.9 (urutan mengikuti urutan pengerjaan; pemetaan dari v0.7 dicatat di bagian Fase 4) dan panduan Fase 4 ditulis. Ditambah K23 sampai K26 dan backlog B11 sampai B13. **Koreksi dan temuan:** dokumentasi daring `expo-image-manipulator` memuat API SDK 58, jadi tipe SDK 54 diperiksa langsung di `node_modules` (`manipulate`, `renderAsync`, `saveAsync`, `release` tersedia di versi 14.0.8); uji menemukan cacat sesi scan yang muncul lagi setelah keluar lalu masuk dengan akun yang sama dan sudah diperbaiki (state sesi diatur ulang saat pemilik berubah); `cek-kontras` menjadi 16 pasangan |
 | 2026-10-14 | 0.7 | Fase 2 dicentang (2.1 sampai 2.8, laporan pengguna) kecuali 2.0 dan 2.9: pengguna menyampaikan `ROADMAP.md` dan panduan fase 0 sampai 2 tidak pernah dimasukkan ke folder proyek, dan cek repo memastikan `main` berhenti di PR #1 dengan empat berkas nyasar masih ada; penutupnya dipindah ke tugas 3.0. Fase 3 diperinci menjadi 3.0 sampai 3.9 dan panduan Fase 3 ditulis. **Koreksi:** tugas 3.1 lama menyebut `expo-sqlite`, dokumentasi Supabase terbaru memakai AsyncStorage (K19). Ditambah K19 sampai K22, backlog B9 (konfirmasi email dan reset sandi via deep link) dan B10 (enkripsi sesi). `cek-kontras` menangkap cacat pada kotak pesan galat rancangan awal (teks merah di latar merah muda 4,37:1) sehingga teks kotak pesan memakai warna teks utama; pasangan menjadi 15 |
 | 2026-10-14 | 0.6 | Fase 0 (0.0 sampai 0.9) dan Fase 1 (1.0 sampai 1.9) dicentang berdasarkan laporan pengguna; fase berjalan menjadi Fase 2. **Koreksi panduan Fase 1:** bagian 4.6 dan 7.10 keliru menyatakan galat `tsc` yang tersisa hanya di `app/`; sebenarnya `DevShortcuts` (typedRoutes) ikut galat sampai berkas rute dibuat dan `npx expo start` menyegarkan tipe. Tabel galat per tahap hasil replay (9, 16, 9, 11, 0) ditambahkan di bagian 13.1; setiap blok kode kini berlabel `Berkas:` dengan status berkas baru atau lama (jawaban atas pertanyaan 10.2: blok itu untuk `app/dokumen/[id].tsx` dan `app/editor/[halamanId].tsx`). Pengecekan repo 2026-10-14: empat berkas nyasar (`tatus`, `h -u origin main`, `(`, `router.push(item.href)}`, akibat kode ditempel ke terminal) masih ter-track dan dihapus di tugas 2.0. Fase 2 diperinci menjadi tugas 2.0 sampai 2.9 dan panduan Fase 2 ditulis; ditambah K18 (jalur CLI) dan B8 (fungsi `security definer`). Sumber Supabase ditambahkan |
@@ -409,7 +422,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | 2026-10-10 | 0.2 | Fase 0 dimulai. Hasil verifikasi: tag `latest` Expo sudah SDK 57 (wajib `--template default@sdk-54`); TypeScript strict dan ESLint sudah aktif di template; `.env` belum di-ignore template; cabang awal `master`; kunci Supabase memakai publishable key (K12, K13). Permintaan: tutorial Supabase dari nol, ditambahkan sebagai tugas 0.9 `[IMPROVISASI, P1]` dan migrasi serta uji RLS Fase 2 disiapkan lebih awal. Panduan baru di `docs/` |
 | 2026-10-10 | 0.1 | Roadmap pertama. Hasil verifikasi mengubah rancangan awal: percantik lewat Cloudinary (K7), crop manual (K8), `USERS` jadi `profiles` (K10), urutan alur unggah sebelum percantik |
 
-## 10. Sumber verifikasi (diakses 2026-10-10)
+## 10. Sumber verifikasi (diakses 2026-10-10; tambahan Cloudinary diakses 2026-10-17)
 
 - Expo SDK 54: https://expo.dev/changelog/sdk-54
 - expo-image-manipulator (SDK 54): https://docs.expo.dev/versions/v54.0.0/sdk/imagemanipulator/
@@ -441,3 +454,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 - Expo, Camera SDK 54 (diakses 2026-10-16): https://docs.expo.dev/versions/v54.0.0/sdk/camera/
 - Expo, ImageManipulator (halaman terbaru memuat API kontekstual; tipe SDK 54 diperiksa di `node_modules`, diakses 2026-10-16): https://docs.expo.dev/versions/latest/sdk/imagemanipulator/
 - Expo Router, hook `useFocusEffect` (diakses 2026-10-16): https://docs.expo.dev/router/reference/hooks/
+- Cloudinary, Upload presets (diakses 2026-10-17): https://cloudinary.com/documentation/upload_presets
+- Cloudinary, Client-side uploading, keamanan unggahan tanpa tanda tangan (diakses 2026-10-17): https://cloudinary.com/documentation/client_side_uploading
+- Cloudinary, Upload API reference (diakses 2026-10-17; rincian metode `upload` tidak terbaca utuh): https://cloudinary.com/documentation/image_upload_api_reference
+- Cloudinary, perbandingan paket: Free 10 MB per gambar dan 25 megapiksel (diakses 2026-10-17): https://cloudinary.com/pricing/compare-plans
