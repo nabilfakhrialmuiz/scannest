@@ -1,6 +1,6 @@
 # Panduan Fase 4: Kamera dan Sesi Scan (Scannest)
 
-**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 16 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.8 (Fase 4, tugas 4.0 sampai 4.9)
+**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 17 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.9 (Fase 4, tugas 4.0 sampai 4.9)
 
 Setelah Fase 4 selesai, tab **Kamera** berfungsi: kamu memotret dokumen halaman demi halaman, meninjau tiap foto (**Pakai foto** atau **Ulang**), dan mengumpulkannya dalam satu **sesi scan** yang bisa ditambah, diurutkan ulang, dan dihapus. Setiap foto yang dipakai sudah dinormalisasi (maksimum lebar 2000 piksel, JPEG, orientasi tegak) sehingga siap diunggah ke Cloudinary di Fase 5.
 
@@ -1648,16 +1648,18 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 ## 15. Checklist akhir Fase 4
 
+*Status 17 Oktober 2026: dicentang berdasarkan laporan pengguna bahwa seluruh panduan Fase 4 sudah dikerjakan. Hasil uji orientasi foto (12.2 nomor 7 sampai 9) belum dirinci; panduan Fase 5 bagian 2 menanyakannya.*
+
 Sama dengan "Selesai bila" Fase 4 di `ROADMAP.md`.
 
-- [ ] Dokumen terbaru dan cabang `fase-4-kamera` siap (4.0)
-- [ ] `expo-camera` dan `expo-image-manipulator` terpasang lewat `npx expo install` (4.1)
-- [ ] Izin kamera dijelaskan dulu; bila ditolak permanen ada tombol ke pengaturan; teks izin dan `recordAudioAndroid: false` ada di `app.json` (4.2)
-- [ ] Foto dinormalisasi (lebar maksimum 2000, JPEG 0,85) dan tegak untuk portrait dan landscape di HP (4.3, uji 12.2 nomor 7 sampai 9)
-- [ ] Sesi scan: tambah, hapus, urutkan; hanya URI yang disimpan (4.4)
-- [ ] Kamera dengan jepret, flash tiga mode, dan grid (4.6); tinjau **Pakai foto** atau **Ulang** (4.7)
-- [ ] Kartu sesi di Dashboard; sesi tidak terbawa setelah keluar (4.8)
-- [ ] `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau (4.9)
+- [x] Dokumen terbaru dan cabang `fase-4-kamera` siap (4.0)
+- [x] `expo-camera` dan `expo-image-manipulator` terpasang lewat `npx expo install` (4.1)
+- [x] Izin kamera dijelaskan dulu; bila ditolak permanen ada tombol ke pengaturan; teks izin dan `recordAudioAndroid: false` ada di `app.json` (4.2)
+- [x] Foto dinormalisasi (lebar maksimum 2000, JPEG 0,85) dan tegak untuk portrait dan landscape di HP (4.3, uji 12.2 nomor 7 sampai 9)
+- [x] Sesi scan: tambah, hapus, urutkan; hanya URI yang disimpan (4.4)
+- [x] Kamera dengan jepret, flash tiga mode, dan grid (4.6); tinjau **Pakai foto** atau **Ulang** (4.7)
+- [x] Kartu sesi di Dashboard; sesi tidak terbawa setelah keluar (4.8)
+- [x] `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau (4.9)
 
 ---
 

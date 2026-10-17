@@ -9,13 +9,16 @@ import {
   TinjauFoto,
   normalisasiFoto,
   useScanSession,
+  useSimpanDokumen,
   type FotoMentah,
 } from '@/features/scan';
 
 type Tahap = 'kamera' | 'tinjau' | 'daftar';
 
 export default function KameraScreen() {
-  const { pages, isFull, addPage, removePage, movePage, clear } = useScanSession();
+  const { pages, isFull, isLocked, judul, setJudul, addPage, removePage, movePage, clear } =
+    useScanSession();
+  const { simpan, menyimpan, galat: galatSimpan, selesai, sisa } = useSimpanDokumen();
 
   const [tahap, setTahap] = useState<Tahap>(pages.length > 0 ? 'daftar' : 'kamera');
   const [foto, setFoto] = useState<FotoMentah | null>(null);
@@ -80,6 +83,14 @@ export default function KameraScreen() {
       <DaftarHalaman
         pages={pages}
         isFull={isFull}
+        isLocked={isLocked}
+        judul={judul}
+        onJudulChange={setJudul}
+        onSimpan={() => void simpan()}
+        menyimpan={menyimpan}
+        sisa={sisa}
+        selesai={selesai}
+        galat={galatSimpan}
         onTambah={() => setTahap('kamera')}
         onHapus={removePage}
         onGeser={movePage}
