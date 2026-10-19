@@ -1,6 +1,6 @@
 # Panduan Fase 5: Unggah ke Cloudinary dan Simpan Dokumen (Scannest)
 
-**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 17 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.9 (Fase 5, tugas 5.0 sampai 5.9)
+**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 19 Oktober 2026 (checklist dicentang; isi tidak berubah) · **Sinkron dengan:** `ROADMAP.md` v0.10 (Fase 5, tugas 5.0 sampai 5.9)
 
 Setelah Fase 5 selesai, sesi scan dari Fase 4 bisa **disimpan sebagai dokumen**: tiap halaman diunggah ke Cloudinary (dengan indikator kemajuan dan ulang otomatis), lalu dicatat ke tabel `dokumen` dan `halaman_dokumen` di Supabase. Bila satu halaman gagal, halaman sebelumnya tetap aman dan kamu cukup menekan **Coba lagi**; hanya halaman yang belum selesai yang dikerjakan ulang.
 
@@ -150,19 +150,30 @@ Dua hal penting dari dokumentasi Cloudinary (halaman *Upload presets* dan *Clien
 
 ### 3.3 Buktikan dengan `curl` (wajib)
 
-Ini membuktikan preset benar **dan** menunjukkan bentuk jawaban asli Cloudinary yang dibaca kode kita. Ambil satu foto `.jpg` apa saja (misalnya `C:\foto-uji.jpg`). Ganti `CLOUD` dan `PRESET`:
+Ini membuktikan preset benar **dan** menunjukkan bentuk jawaban asli Cloudinary yang dibaca kode kita. Ambil satu foto `.jpg` apa saja.
+
+**Siapkan berkas dulu (jangan lewati).** `foto-uji.jpg` di bawah hanyalah contoh nama; berkas itu tidak ada di komputermu kecuali kamu membuatnya (begitu pula `berkas-uji.gif` untuk uji penolakan; buat dengan membuka sembarang gambar di Paint lalu **Save as > GIF picture**; jangan sekadar mengganti ekstensi, karena isi berkasnya tetap JPEG, letakkan di folder yang sama). Pindah ke folder tempat fotonya berada, pastikan namanya terbaca persis, lalu pakai **nama berkas saja** (tanpa jalur), supaya tidak ada masalah tanda kutip dan garis miring:
 
 ```bash
-curl.exe -X POST -F "file=@C:\foto-uji.jpg" -F "upload_preset=PRESET" https://api.cloudinary.com/v1_1/CLOUD/image/upload
+cd /d C:\Users\NAMAMU\Downloads
+dir *.jpg
 ```
+
+Ganti `NAMAMU` dengan nama folder penggunamu. Bila `dir` tidak menampilkan fotonya, berkas belum ada di folder itu. Di File Explorer, aktifkan **View > Show > File name extensions** agar kamu melihat nama aslinya (kesalahan umum: `foto.jpg.jpg` atau `foto.jpeg`). Ganti `CLOUD`, `PRESET`, dan `foto-uji.jpg` dengan nama berkasmu:
+
+```bash
+curl.exe -X POST -F "file=@foto-uji.jpg" -F "upload_preset=PRESET" https://api.cloudinary.com/v1_1/CLOUD/image/upload
+```
+
+Bila muncul `curl: (26) Failed to open/read local data from file/application`, curl **tidak bisa membuka berkas lokalnya**; permintaan belum sampai ke Cloudinary, jadi galat ini tidak ada hubungannya dengan preset. Penyebab tersering: nama atau jalur berkas salah (cek dengan `dir`), ekstensi tersembunyi, tanda kutip ganda di dalam tanda kutip (hasil *Copy as path* dari Explorer sudah membawa kutip; hapus kutip bawaannya), atau berkas masih berstatus *online-only* di OneDrive (klik kanan > *Always keep on this device*). Tanda koma, titik koma, atau kutip di dalam jalur juga membingungkan `curl -F`; salin foto ke folder sederhana seperti `C:\uji`.
 
 Hasil yang benar: JSON berisi `public_id`, `secure_url` (diawali `https://`), `bytes`, `width`, `height`, `format`. **Kirimkan JSON itu kepada saya** (boleh dengan nama cloud-mu dihapus); kode `bacaJawaban` memeriksa lima bidang pertama, dan saya ingin memastikannya cocok. Lalu cek di Console: **Media Library** harus memuat foto itu di folder `scannest`.
 
 Dua uji penolakan (keduanya harus **gagal** dengan pesan galat berformat JSON `{"error":{"message":...}}`):
 
 ```bash
-curl.exe -X POST -F "file=@C:\berkas-uji.gif" -F "upload_preset=PRESET" https://api.cloudinary.com/v1_1/CLOUD/image/upload
-curl.exe -X POST -F "file=@C:\foto-uji.jpg" -F "upload_preset=PRESET" -F "public_id=nama-sendiri" https://api.cloudinary.com/v1_1/CLOUD/image/upload
+curl.exe -X POST -F "file=@berkas-uji.gif" -F "upload_preset=PRESET" https://api.cloudinary.com/v1_1/CLOUD/image/upload
+curl.exe -X POST -F "file=@foto-uji.jpg" -F "upload_preset=PRESET" -F "public_id=nama-sendiri" https://api.cloudinary.com/v1_1/CLOUD/image/upload
 ```
 
 Yang pertama (gif) harus ditolak oleh `allowed_formats`. Yang kedua (`public_id` buatan sendiri) harus **tidak** menghasilkan `public_id` bernama `nama-sendiri`: ia ditolak, atau namanya diabaikan dan tetap acak. Kirimkan hasil keduanya juga; itu bukti `disallow_public_id` bekerja. Hapus foto-foto uji ini dari Media Library lewat Console agar kuotamu bersih.
@@ -1627,7 +1638,7 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 ## 11. Yang perlu diingat saat coding nanti
 
-1. **Fase 6 membaca `public_id`**: URL percantik dibangun dari `halaman_dokumen.public_id`, jadi jangan pernah mengubahnya. `url_hasil` awalnya sama dengan `url_asli`; Fase 6 yang menggantinya.
+1. **Fase 6 membaca `url_asli`** (K33): URL percantik dibangun dengan menyisipkan resep ke `halaman_dokumen.url_asli`, jadi jangan pernah mengubahnya (begitu pula `public_id`). `url_hasil` awalnya sama dengan `url_asli`; Fase 6 yang menggantinya.
 2. **Dokumen tetap `draft`** setelah disimpan. Status `selesai` baru diberikan di Fase 6 (tugas 6.9) setelah semua halaman diproses.
 3. **Jangan memasukkan API secret Cloudinary** ke aplikasi, `.env`, atau repo. Penghapusan aset dan unggahan bertanda tangan hanya lewat Edge Function (K6, B14).
 4. **Penghapusan dokumen (Fase 7) belum menghapus file di Cloudinary**; itu pekerjaan Edge Function di Fase 8. Sementara itu pantau kuota di dashboard Cloudinary.
@@ -1642,6 +1653,7 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 | Gejala | Kemungkinan penyebab dan solusi |
 |---|---|
+| `curl: (26) Failed to open/read local data from file/application` di 3.3 | Berkas foto tidak terbaca curl (nama atau jalur salah, ekstensi tersembunyi, kutip ganda dua kali, atau berkas OneDrive online-only). Bukan masalah preset. Lihat penjelasan di 3.3. |
 | "Cloudinary belum diatur..." saat Simpan | Dua variabel Cloudinary kosong atau Metro belum di-restart. Isi `.env`, lalu `npx expo start --clear`, dan pastikan log menampilkan empat nama variabel. |
 | "Upload preset tidak ditemukan" | Nama preset di `.env` salah ketik atau preset belum disimpan. Cocokkan dengan Console: **Settings > Upload Presets**. |
 | "Preset belum berstatus Unsigned" | Signing mode preset masih *Signed*. Ubah menjadi **Unsigned**. |
@@ -1664,13 +1676,13 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 Sama dengan "Selesai bila" Fase 5 di `ROADMAP.md`.
 
-- [ ] Dokumen terbaru dan cabang `fase-5-cloudinary` siap; hasil uji orientasi Fase 4 dilaporkan (5.0)
-- [ ] Preset Unsigned jadi; `curl` menghasilkan JSON yang benar, gif ditolak, `public_id` buatan sendiri tidak berlaku (5.1)
-- [ ] `.env` Cloudinary terisi; `uploadImage` bekerja dengan kemajuan, batas 8 MB, dan ulang otomatis (5.2 sampai 5.5)
-- [ ] Foto dari kamera muncul di Cloudinary dan tercatat di `halaman_dokumen` dengan `public_id` benar; `jumlah_halaman` sesuai (5.6)
-- [ ] Gagal di tengah tidak merusak halaman sebelumnya; **Coba lagi** hanya mengerjakan sisa, tanpa dokumen atau unggahan ganda (5.7)
-- [ ] Judul, status per halaman, dan kartu Dashboard bekerja (5.8)
-- [ ] `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau (5.9)
+- [x] Dokumen terbaru dan cabang `fase-5-cloudinary` siap; hasil uji orientasi Fase 4 dilaporkan (5.0)
+- [x] Preset Unsigned jadi; `curl` menghasilkan JSON yang benar, gif ditolak, `public_id` buatan sendiri tidak berlaku (5.1)
+- [x] `.env` Cloudinary terisi; `uploadImage` bekerja dengan kemajuan, batas 8 MB, dan ulang otomatis (5.2 sampai 5.5)
+- [x] Foto dari kamera muncul di Cloudinary dan tercatat di `halaman_dokumen` dengan `public_id` benar; `jumlah_halaman` sesuai (5.6)
+- [x] Gagal di tengah tidak merusak halaman sebelumnya; **Coba lagi** hanya mengerjakan sisa, tanpa dokumen atau unggahan ganda (5.7)
+- [x] Judul, status per halaman, dan kartu Dashboard bekerja (5.8)
+- [x] `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau (5.9)
 
 ---
 

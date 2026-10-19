@@ -3,9 +3,9 @@
 Aplikasi Android untuk memindai dokumen, merapikan hasilnya, dan menyimpannya di cloud.
 Stack: Expo SDK 54 (React Native), Supabase, Cloudinary.
 
-- Versi dokumen: 0.9
-- Terakhir diperbarui: 2026-10-17
-- Fase berjalan: **Fase 5 (Upload ke Cloudinary)**, panduan `docs/panduan-fase-5.md`. Fase 0 sampai 4 selesai (centang berdasarkan laporan pengguna; Fase 4 dilaporkan selesai pada 2026-10-17, hasil uji orientasi foto belum dirinci pengguna). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-fase-4.md`, `docs/panduan-supabase.md`
+- Versi dokumen: 0.10
+- Terakhir diperbarui: 2026-10-19
+- Fase berjalan: **Fase 6 (Percantik foto)**, panduan `docs/panduan-fase-6.md`. Fase 0 sampai 5 selesai (centang berdasarkan laporan pengguna; Fase 5 dilaporkan selesai pada 2026-10-18 setelah koreksi contoh `curl`; hasil uji orientasi foto Fase 4 belum dirinci pengguna). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-fase-4.md`, `docs/panduan-fase-5.md`, `docs/panduan-supabase.md`
 
 ---
 
@@ -53,7 +53,7 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 | K4 | Penyimpanan gambar | Cloudinary | Sesuai permintaan | Free: 25 kredit/bulan. 1 kredit = 1.000 transformasi **atau** 1 GB storage **atau** 1 GB bandwidth, dibagi bersama. Melebihi kuota tanpa upgrade berujung akun dinonaktifkan |
 | K5 | Upload | Unsigned upload preset dari aplikasi | Tanpa server untuk fase awal | Nama preset terlihat publik. Pengaman: `allowed_formats`, `disallow_public_id`, incoming transformation. Preset tidak punya batas ukuran file, jadi validasi di aplikasi |
 | K6 | Hapus file Cloudinary | Supabase Edge Function | Penghapusan butuh API secret yang tidak boleh ada di aplikasi | Perlu belajar Edge Functions (Deno) |
-| K7 | Percantik foto | URL transformation Cloudinary, bukan di perangkat | `expo-image-manipulator` hanya punya crop, resize, rotate, flip. **Tidak ada kecerahan, kontras, atau filter** | Preview butuh internet. Setiap kombinasi transformasi unik memakai kredit transformasi |
+| K7 | Percantik foto | URL transformation Cloudinary, bukan di perangkat | `expo-image-manipulator` hanya punya crop, resize, rotate, flip. **Tidak ada kecerahan, kontras, atau filter** | Preview butuh internet. Setiap kombinasi transformasi unik dihitung sebagai satu transformasi (1.000 transformasi = 1 kredit; diperjelas di v0.10) |
 | K8 | Crop | Crop 4 sudut manual, juga lewat URL Cloudinary | Tanpa library native, jalan di Expo Go, bisa diedit ulang | Tidak ada deteksi tepi otomatis di v1.0 |
 | K9 | Deteksi tepi otomatis | Ditunda ke backlog (B1) memakai `react-native-document-scanner-plugin` v1.0.1 | Pakai native scanner | **Tidak jalan di Expo Go**, butuh prebuild atau EAS build. README tidak menjelaskan algoritma deteksinya **(uji)** |
 | K10 | Tabel `USERS` | Diimplementasikan sebagai `profiles` yang tertaut ke Supabase Auth | Email dan password dikelola Auth | Kolom `password_hash` dan `email` pada ERD tidak dibuat di tabel sendiri |
@@ -77,6 +77,15 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 | K28 | Urutan unggah | Berurutan per halaman, berhenti di kegagalan pertama; ulang hanya halaman yang gagal | Kegagalan jaringan atau preset hampir selalu berlaku untuk semua halaman; halaman sebelumnya pasti tersimpan | Satu halaman bermasalah menahan halaman sesudahnya sampai diulang atau dihapus |
 | K29 | Hasil unggahan disimpan di sesi | Balasan Cloudinary (`hasil`) ikut disimpan per halaman; bila database gagal, ulang hanya penulisan database | Tidak ada unggahan ganda dan kuota tidak terbuang | Logika tambahan (status `diunggah`) |
 | K30 | `.env` Cloudinary opsional saat aplikasi dibuka | `cloudinaryCloudName` dan `cloudinaryUploadPreset` bernilai `null` bila kosong; pesan jelas muncul saat Simpan | Login dan kamera tetap bisa diuji sebelum 5.1 selesai | Salah ketik nama variabel baru ketahuan saat menyimpan |
+| K31 | Gestur crop dan slider | `PanResponder` bawaan React Native (menggantikan rencana Gesture Handler + Reanimated) | Tanpa paket baru dan konfigurasi worklet, jalan di Expo Go, cukup untuk 4 titik tarik dan 2 slider, bisa diuji di web | Berjalan di jalur JS; pada perangkat lambat bisa kurang mulus. Pindah ke Reanimated bila uji HP menunjukkan patah-patah |
+| K32 | Slider kecerahan dan kontras | Komponen buatan sendiri `src/components/Slider.tsx` | Tanpa dependensi, area sentuh 48 dp, aksi tambah/kurang untuk pembaca layar | Kode yang dirawat sendiri |
+| K33 | Sumber URL transformasi | `buildCloudinaryUrl(urlAsli, efek, opsi)` menyisipkan resep setelah `/image/upload/` pada `url_asli` (menggantikan `buildCloudinaryUrl(publicId, efek)` di v0.9) | Versi, folder, dan ekstensi terbawa persis; tidak bergantung `.env` | Bergantung pada bentuk URL Cloudinary; bila tidak dikenali mengembalikan `null` dan layar menampilkan galat |
+| K34 | Pelari uji unit | `node --test` dengan type stripping Node (Node 22.18 ke atas) dan hook resolve `tests/resolve-ts.mjs` (menggantikan Jest di v0.9, tugas 6.2) | Tanpa paket baru; modul yang diuji murni | Tidak cocok untuk uji komponen layar; Jest ditambahkan di Fase 9 bila perlu (B20) |
+| K35 | Pratinjau | `c_limit,h_1200,w_1200` + `q_auto` setelah resep; ditunda 300 ms; dimuat lewat `Image.prefetch`; slider berlangkah 5; efek bawaan tanpa URL transformasi; `url_hasil` tanpa pengecilan | Respons cepat, hemat kuota data, sedikit URL unik | Pratinjau bukan resolusi penuh |
+| K36 | Batas kecerahan di URL | Dipotong minimal -99 (slider tetap -100 sampai 100) | Cloudinary menolak `e_brightness:-100` (diuji 2026-10-18) | Nilai -100 dan -99 menghasilkan gambar yang sama |
+| K37 | Urutan dan sumber crop | Crop dikerjakan pada foto asli, sebelum rotasi; koordinat piksel foto asli di `data_crop`; `c_crop,g_north_west` | Sesuai urutan rantai crop → rotasi → efek; sintaks diuji | Tidak bisa crop pada tampilan yang sudah diputar (B16) |
+| K38 | Status dokumen `selesai` | Bila setiap halaman punya baris `efek_foto` (termasuk **Simpan tanpa efek**); pembaruan status bersifat pelengkap | Satu ketukan per halaman, tanpa tombol "selesai" | "Selesai" berarti "sudah ditinjau". Tiga langkah simpan bukan satu transaksi (B19) |
+| K39 | Bandingkan sebelum/sesudah | Tombol sakelar (bukan tahan-tekan) | Mudah untuk pembaca layar dan satu tangan | Satu ketukan tambahan |
 
 ### Dampak ke diagram yang sudah dibuat
 
@@ -119,7 +128,8 @@ scannest/
 │  ├─ migrations/             # SQL skema + RLS
 │  └─ functions/              # Edge Functions
 ├─ scripts/cek-kontras.mjs    # cek kontras warna (Fase 1, tugas 1.2)
-├─ docs/                      # panduan-fase-0.md, panduan-fase-1.md, panduan-fase-2.md, panduan-supabase.md; ERD dan diagram di Fase 10
+├─ docs/                      # panduan-fase-0.md sampai panduan-fase-6.md, panduan-supabase.md; ERD dan diagram di Fase 10
+├─ tests/                     # uji unit `node --test` (Fase 6)
 ├─ ROADMAP.md  README.md
 ├─ .env.example  .env (lokal, tidak di-commit)
 ├─ .prettierrc  .prettierignore  eslint.config.js   # Fase 0, tugas 0.4
@@ -274,38 +284,42 @@ Panduan rinci: `docs/panduan-fase-4.md`. Nomor tugas di sini sama dengan nomor t
 
 ### Fase 5 — Upload ke Cloudinary
 
-Panduan rinci: `docs/panduan-fase-5.md`. Nomor 5.1 sampai 5.7 sama dengan v0.8 (isinya diperinci); 5.0, 5.8, dan 5.9 ditambahkan di v0.9. Kerjakan di cabang `fase-5-cloudinary`. Kodenya sudah teruji sebagai aplikasi web dengan kamera tiruan Chromium melawan **Cloudinary dan tabel database tiruan** (46 skenario) dan 45 uji unit; urutan langkahnya diputar ulang dengan 0 galat typecheck setelah tiap berkas, kecuali satu galat sementara di antara 8.1 dan 8.3 yang dijelaskan di panduan. **Belum terbukti** (hanya bisa dibuktikan pengguna): Cloudinary dan Supabase sungguhan, pengiriman `FormData` berisi `{uri,name,type}` di Android, nama bidang balasan dan kalimat galat Cloudinary, serta orientasi foto di HP.
+Panduan rinci: `docs/panduan-fase-5.md`. Nomor 5.1 sampai 5.7 sama dengan v0.8 (isinya diperinci); 5.0, 5.8, dan 5.9 ditambahkan di v0.9. Kerjakan di cabang `fase-5-cloudinary`. Kodenya sudah teruji sebagai aplikasi web dengan kamera tiruan Chromium melawan **Cloudinary dan tabel database tiruan** (46 skenario) dan 45 uji unit; urutan langkahnya diputar ulang dengan 0 galat typecheck setelah tiap berkas, kecuali satu galat sementara di antara 8.1 dan 8.3 yang dijelaskan di panduan. Status 2026-10-18: **selesai menurut laporan pengguna** (seluruh panduan Fase 5 dikerjakan; contoh `curl` di 3.3 dikoreksi lebih dulu karena memicu galat `curl: (26)` akibat jalur berkas literal). Sebelumnya **belum terbukti** (hanya bisa dibuktikan pengguna): Cloudinary dan Supabase sungguhan, pengiriman `FormData` berisi `{uri,name,type}` di Android, nama bidang balasan dan kalimat galat Cloudinary, serta orientasi foto di HP.
 
-- [ ] 5.0 Tutup Fase 4 dan persiapan: `main` bersih dan Fase 4 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-5-cloudinary`; laporkan hasil uji orientasi Fase 4 (12.2 nomor 7 sampai 9).
-- [ ] 5.1 Di dashboard Cloudinary buat **unsigned upload preset**: Signing mode *Unsigned*, folder `scannest`, `allowed_formats` = `jpg,png`, `disallow_public_id` = true, incoming transformation `c_limit,w_2000,h_2000`. Buktikan dengan `curl` (unggah berhasil, lalu dua uji penolakan: format salah dan `public_id` buatan sendiri) dan kirim JSON hasilnya; rincian parameter metode `upload` tidak terbaca utuh dari dokumentasi, jadi buktinya `curl`, bukan asumsi.
-- [ ] 5.2 `.env` (`EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME`, `EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; keduanya publik, **tanpa API secret**) dan `src/lib/cloudinary.ts`: `uploadImage(uri)` mengirim `multipart/form-data` (hanya `file` dan `upload_preset`) ke `https://api.cloudinary.com/v1_1/<cloud_name>/image/upload`; balasan dicek dengan zod (`public_id`, `secure_url`, `bytes`, `width`, `height`).
-- [ ] 5.3 `XMLHttpRequest` (bukan `fetch`) agar kemajuan unggahan tampil lewat `upload.onprogress`; batas waktu 60 detik per percobaan; bisa dibatalkan (`AbortController`).
-- [ ] 5.4 Tolak foto lebih dari 8 MB sebelum diunggah (Free plan Cloudinary 10 MB per gambar dan 25 megapiksel; preset tidak membatasi ukuran).
-- [ ] 5.5 Ulang 2 kali dengan jeda 1 dan 3 detik hanya untuk galat jaringan, batas waktu, dan server (5xx, 429); galat preset atau format tidak diulang; pesan Bahasa Indonesia per jenis galat.
-- [ ] 5.6 Simpan ke Supabase (`src/features/dokumen/api.ts`, `useSimpanDokumen`): buat `dokumen` (status `draft`, judul bawaan "Dokumen <tanggal jam>" atau isian pengguna) sekali, lalu isi `halaman_dokumen` (`url_asli`, `url_hasil` awal = `url_asli`, `public_id`, `ukuran_byte`, `urutan`); kode galat `23505` dianggap sudah tersimpan bila barisnya sama.
-- [ ] 5.7 Jika halaman ke-N gagal, halaman sebelumnya tetap aman dan pengguna bisa mengulang hanya halaman yang gagal (K28, K29); urutan dan urut ulang dikunci setelah dokumen dibuat.
-- [ ] 5.8 Rakit layar Kamera dan Dashboard: kolom judul, tombol **Simpan dokumen** / **Coba lagi (N halaman)** / **Mulai sesi baru**, status dan progress per halaman, kartu "Sesi scan berjalan" di Dashboard menampilkan sisa yang belum disimpan.
-- [ ] 5.9 Uji di HP memakai daftar di panduan 10.2 dan cek baris di tabel (`select` di SQL Editor), lalu commit, pull request, CI hijau, merge.
+- [x] 5.0 Tutup Fase 4 dan persiapan: `main` bersih dan Fase 4 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-5-cloudinary`; laporkan hasil uji orientasi Fase 4 (12.2 nomor 7 sampai 9).
+- [x] 5.1 Di dashboard Cloudinary buat **unsigned upload preset**: Signing mode *Unsigned*, folder `scannest`, `allowed_formats` = `jpg,png`, `disallow_public_id` = true, incoming transformation `c_limit,w_2000,h_2000`. Buktikan dengan `curl` (unggah berhasil, lalu dua uji penolakan: format salah dan `public_id` buatan sendiri) dan kirim JSON hasilnya; rincian parameter metode `upload` tidak terbaca utuh dari dokumentasi, jadi buktinya `curl`, bukan asumsi.
+- [x] 5.2 `.env` (`EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME`, `EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; keduanya publik, **tanpa API secret**) dan `src/lib/cloudinary.ts`: `uploadImage(uri)` mengirim `multipart/form-data` (hanya `file` dan `upload_preset`) ke `https://api.cloudinary.com/v1_1/<cloud_name>/image/upload`; balasan dicek dengan zod (`public_id`, `secure_url`, `bytes`, `width`, `height`).
+- [x] 5.3 `XMLHttpRequest` (bukan `fetch`) agar kemajuan unggahan tampil lewat `upload.onprogress`; batas waktu 60 detik per percobaan; bisa dibatalkan (`AbortController`).
+- [x] 5.4 Tolak foto lebih dari 8 MB sebelum diunggah (Free plan Cloudinary 10 MB per gambar dan 25 megapiksel; preset tidak membatasi ukuran).
+- [x] 5.5 Ulang 2 kali dengan jeda 1 dan 3 detik hanya untuk galat jaringan, batas waktu, dan server (5xx, 429); galat preset atau format tidak diulang; pesan Bahasa Indonesia per jenis galat.
+- [x] 5.6 Simpan ke Supabase (`src/features/dokumen/api.ts`, `useSimpanDokumen`): buat `dokumen` (status `draft`, judul bawaan "Dokumen <tanggal jam>" atau isian pengguna) sekali, lalu isi `halaman_dokumen` (`url_asli`, `url_hasil` awal = `url_asli`, `public_id`, `ukuran_byte`, `urutan`); kode galat `23505` dianggap sudah tersimpan bila barisnya sama.
+- [x] 5.7 Jika halaman ke-N gagal, halaman sebelumnya tetap aman dan pengguna bisa mengulang hanya halaman yang gagal (K28, K29); urutan dan urut ulang dikunci setelah dokumen dibuat.
+- [x] 5.8 Rakit layar Kamera dan Dashboard: kolom judul, tombol **Simpan dokumen** / **Coba lagi (N halaman)** / **Mulai sesi baru**, status dan progress per halaman, kartu "Sesi scan berjalan" di Dashboard menampilkan sisa yang belum disimpan.
+- [x] 5.9 Uji di HP memakai daftar di panduan 10.2 dan cek baris di tabel (`select` di SQL Editor), lalu commit, pull request, CI hijau, merge.
 
 **Selesai bila:** foto dari kamera muncul di Cloudinary (folder `scannest`) dan tercatat di tabel `halaman_dokumen` dengan `public_id` yang benar dan `urutan` sesuai tampilan; kegagalan di tengah tidak menghilangkan halaman yang sudah tersimpan dan tidak membuat unggahan ganda; tidak ada rahasia (API secret, `sb_secret_`, `service_role`) di aplikasi atau repo; `typecheck`, `lint`, `format:check`, `cek:kontras` bersih; PR digabung dan CI hijau.
 
 ### Fase 6 — Percantik foto (non-destruktif)
 
-Semua efek disimpan sebagai parameter di `efek_foto`. Foto asli tidak berubah. Urutan rantai transformasi: **crop → rotasi → efek**.
+Panduan rinci: `docs/panduan-fase-6.md`. Nomor 6.1 sampai 6.11 sama dengan v0.9 (isinya diperinci dan beberapa alat diganti: K31, K33, K34); 6.0 dan 6.12 ditambahkan di v0.10. Kerjakan di cabang `fase-6-percantik`. Semua efek disimpan sebagai parameter di `efek_foto`; foto asli tidak berubah; `url_hasil` berisi URL beresep. Urutan rantai transformasi: **crop → rotasi → filter → kecerahan → kontras**.
 
-- [ ] 6.1 **Verifikasi sintaks** di Transformation Reference Cloudinary untuk crop berkoordinat, rotasi, `e_grayscale`, `e_blackwhite`, `e_brightness`, `e_contrast`, `e_sharpen`. Hanya `e_improve` yang sudah terverifikasi (`.../upload/e_improve/<public_id>`). Uji tiap URL di browser sebelum menulis kode.
-- [ ] 6.2 Fungsi murni `buildCloudinaryUrl(publicId, efek)` dan unit test Jest untuk semua kombinasi (asli, dokumen, hitam-putih, abu-abu, tajam, kecerahan, kontras, rotasi, crop).
-- [ ] 6.3 Layar editor `editor/[halamanId]`: tampilkan foto, muat `efek_foto` jika sudah ada.
-- [ ] 6.4 Overlay crop 4 sudut (Gesture Handler + Reanimated) dengan koordinat dalam piksel gambar yang sudah dinormalisasi.
-- [ ] 6.5 Tombol rotasi 90 derajat.
+Kodenya sudah teruji sebagai aplikasi web melawan **Cloudinary (tiruan gambar PIL) dan tabel database tiruan** (101 pemeriksaan e2e di 9 kelompok skenario; regresi Fase 5: 48 skenario) dan 34 uji unit (`npm test`); sintaks transformasi diuji langsung ke akun Cloudinary lewat konektor pada 2026-10-18; urutan langkah panduan diputar ulang dengan 0 galat typecheck setelah tiap berkas kecuali satu galat sementara di antara `DaftarHalaman.tsx` dan `kamera.tsx` (panduan bagian 7). **Belum terbukti** (hanya bisa dibuktikan pengguna): Supabase sungguhan (`upsert` dan `update` terhadap RLS, bentuk embed `efek_foto`), gestur crop dan slider di layar sentuh Android, `Image.prefetch` di Android, dan tampilan visual efek dari Cloudinary asli.
+
+- [ ] 6.0 Tutup Fase 5 dan persiapan: `main` bersih dan Fase 5 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-6-percantik`; laporkan foto uji yang miring di Cloudinary, bila ada.
+- [ ] 6.1 **Verifikasi sintaks** transformasi: crop berkoordinat (`c_crop,g_north_west,...`), rotasi (`a_90`), `e_improve`, `e_blackwhite`, `e_grayscale`, `e_sharpen`, `e_brightness` (-99 sampai 100), `e_contrast` (-100 sampai 100), `c_limit` + `q_auto`. Saya sudah menguji lewat konektor (2026-10-18); pengguna membuktikan empat URL di browser (panduan 3.2).
+- [ ] 6.2 Fungsi murni `buildCloudinaryUrl(urlAsli, efek, opsi)` (K33) dan model `efek.ts`, dengan uji unit `node --test` (K34) untuk semua kombinasi (asli, dokumen, hitam-putih, abu-abu, tajam, kecerahan, kontras, rotasi, crop, pengecilan pratinjau).
+- [ ] 6.3 Layar editor `editor/[halamanId]`: memuat halaman dan `efek_foto` yang tersimpan (`muatHalaman`, pembacaan dengan zod), galat dengan **Coba lagi**; geometri crop murni (`crop.ts`) dengan uji unit.
+- [ ] 6.4 Overlay crop 4 sudut dan badan yang bisa digeser, koordinat dalam piksel foto asli, ukuran minimum, area sentuh 48 dp (K31, K37).
+- [ ] 6.5 Tombol putar 90°.
 - [ ] 6.6 Chip filter: Asli, Dokumen (`e_improve`), Hitam-putih, Abu-abu, Tajam.
-- [ ] 6.7 Slider kecerahan dan kontras, preview di-debounce sekitar 300 ms dengan indikator loading.
-- [ ] 6.8 Tombol bandingkan sebelum/sesudah dan **Reset**.
-- [ ] 6.9 **Simpan**: upsert `efek_foto`, perbarui `halaman_dokumen.url_hasil`, ubah status dokumen menjadi `selesai` bila semua halaman sudah diproses.
-- [ ] 6.10 Tab **Percantik**: daftar halaman yang belum dipercantik, ketuk untuk membuka editor.
-- [ ] 6.11 Pantau pemakaian transformasi di dashboard Cloudinary selama pengujian.
+- [ ] 6.7 Slider kecerahan dan kontras (K32, langkah 5), pratinjau ditunda 300 ms dengan indikator "Memuat pratinjau..." dan tombol **Muat ulang pratinjau** saat gagal (K35, K36).
+- [ ] 6.8 Tombol **Bandingkan** (K39) dan **Reset**.
+- [ ] 6.9 **Simpan**: upsert `efek_foto`, perbarui `halaman_dokumen.url_hasil`, ubah status dokumen menjadi `selesai` bila semua halaman punya efek (K38); galat jaringan, izin, dan nol baris ditangani.
+- [ ] 6.10 Tab **Percantik**: daftar dokumen dan halaman (Belum/Selesai, gambar mini), ketuk untuk membuka editor; tombol **Percantik foto** setelah dokumen tersimpan di tab Kamera.
+- [ ] 6.11 Pantau pemakaian transformasi di dashboard Cloudinary selama pengujian (1.000 transformasi = 1 kredit; per 2026-10-18 akun tercatat 47 transformasi dan 0,22 dari 25 kredit).
+- [ ] 6.12 Uji di HP memakai daftar di panduan 9.2 dan cek baris di tabel (`select` di SQL Editor), lalu commit, pull request, CI hijau, merge.
 
-**Selesai bila:** efek terlihat di preview, tersimpan, dan tetap sama saat editor dibuka ulang.
+**Selesai bila:** efek terlihat di pratinjau, tersimpan di `efek_foto`, `url_hasil` membuka hasil yang sama, dan efek kembali persis saat editor dibuka ulang; status dokumen menjadi `selesai` setelah semua halaman diproses; foto asli di Cloudinary tidak berubah; tidak ada rahasia di aplikasi atau repo; `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau.
 
 ### Fase 7 — Dashboard dan manajemen dokumen
 
@@ -379,6 +393,11 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | B13 | Peringatan konsol `@supabase/supabase-js` 2.117.3: opsi `lock` (`processLock`) sudah *deprecated* dan akan dihapus di v3, klien kini mengoordinasikan pembaruan sesi tanpa kunci; evaluasi menghapus opsinya (terlihat di peramban uji, belum dicek di HP) | P2 | Fase 9 | Usulan |
 | B14 | Unggahan **bertanda tangan** lewat Edge Function (API secret hanya di server) menggantikan unsigned preset, agar preset yang terbaca dari APK tidak bisa dipakai orang lain menghabiskan kuota | P2 | Fase 9 | Usulan |
 | B15 | Aset yatim di Cloudinary (terunggah tetapi tidak tercatat, misalnya aplikasi ditutup di tengah penyimpanan) dan berkas foto sementara; pembersihan lewat Edge Function (penghapusan butuh permintaan bertanda tangan, K6) | P2 | Fase 8 sampai 9 | Usulan |
+| B16 | Crop pada tampilan yang sudah diputar (sekarang crop dikerjakan pada foto asli sebelum rotasi, K37) | P3 | Setelah Fase 9 | Usulan |
+| B17 | Padanan aksesibel untuk crop (gestur seret belum bisa dioperasikan pembaca layar): preset rasio atau isian angka | P2 | Fase 9 | Usulan |
+| B18 | Peringatan "perubahan belum disimpan" saat menutup editor | P2 | Fase 9 | Usulan |
+| B19 | Simpan efek sebagai satu transaksi (fungsi RPC di database) agar `efek_foto`, `url_hasil`, dan status dokumen tidak pernah setengah jalan | P2 | Fase 9 | Usulan |
+| B20 | Pindahkan uji unit Fase 4 dan 5 ke `tests/` dan evaluasi Jest untuk uji komponen | P2 | Fase 9 | Usulan |
 
 ---
 
@@ -386,9 +405,10 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 
 | Risiko | Dampak | Mitigasi |
 |---|---|---|
-| Kuota Cloudinary (25 kredit) habis | Akun bisa dinonaktifkan | Pantau dashboard tiap fase 5–7, kecilkan thumbnail, batasi jumlah kombinasi efek |
+| Kuota Cloudinary (25 kredit) habis | Akun bisa dinonaktifkan | Pantau dashboard tiap fase 5–7. Transformasi murah (1.000 = 1 kredit, tiap kombinasi unik dihitung sekali); penyimpanan dan bandwidth lebih menentukan, jadi hapus foto uji dan kecilkan gambar mini |
 | Proyek Supabase di-pause | Aplikasi tidak bisa login | Aktifkan B4, atau buka proyek tiap minggu |
-| Sintaks transformasi Cloudinary berbeda dari dugaan | Fase 6 tertunda | Tugas 6.1 memverifikasi lewat browser sebelum coding |
+| Sintaks transformasi Cloudinary berbeda dari dugaan | Fase 6 tertunda | Diuji 2026-10-18 (temuan: kecerahan -100 ditolak, K36); pengguna membuktikan di browser (6.1) |
+| Gestur crop dan slider (`PanResponder`) patah-patah di HP | Pengalaman editor buruk | Uji HP di 6.12; bila perlu pindah ke Reanimated (K31) |
 | Orientasi EXIF membuat crop meleset | Hasil crop salah | Normalisasi di 4.3 dan uji foto portrait/landscape (laporan hasil 12.2 nomor 7 sampai 9 ditunggu di 5.0) |
 | Unsigned preset terbaca dari APK (K5) | Orang lain mengunggah ke akunmu dan menghabiskan kuota | Batasan preset (`allowed_formats`, `disallow_public_id`, transformasi masuk), pantau dashboard, B14 (unggahan bertanda tangan) |
 | Secret ikut ter-commit | Akun disalahgunakan | `.env` di `.gitignore`, hanya kunci publik di aplikasi, tinjau di 9.2 |
@@ -412,6 +432,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 2026-10-19 | 0.10 | Fase 5 dicentang (5.0 sampai 5.9) berdasarkan laporan pengguna (selesai 2026-10-18, setelah koreksi `curl`); fase berjalan menjadi Fase 6. Fase 6 diperinci menjadi tugas 6.0 sampai 6.12 dan panduan Fase 6 ditulis. Ditambah K31 sampai K39 (alat diganti dari rencana awal: `PanResponder` bukan Gesture Handler + Reanimated, `node --test` bukan Jest, `buildCloudinaryUrl(urlAsli, ...)` bukan `publicId`), backlog B16 sampai B20, dan baris risiko gestur. **Koreksi dan temuan:** (1) sintaks transformasi diuji ke akun Cloudinary: `e_brightness:-100` ditolak ("Brightness must be > -100"), jadi kode memotong ke -99; (2) catatan lama "tiap URL unik = 1 kredit" keliru: 1.000 transformasi = 1 kredit dan transformasi unik dihitung sekali, sehingga risiko kuota dari pratinjau kecil (akun per 2026-10-18: 47 transformasi, 0,22 dari 25 kredit, mayoritas penyimpanan); gambar turunan hasil uji saya dibersihkan; (3) uji web menemukan titik tarik crop di sudut yang menempel tepi tidak bisa disentuh (area sentuh 48 dp berpusat di sudut foto, separuhnya terpotong); diperbaiki dengan inset area foto dan overlay yang lebih besar setengah area sentuh; (4) chip filter memanjang ke bawah (`flexGrow: 0`); (5) label aksesibilitas tombol putar kini memuat derajat; `Slider` mendapat padanan `aria-*` untuk web; (6) hasil putar ulang panduan: 0 galat typecheck setelah tiap berkas, kecuali satu galat sementara di `kamera.tsx` setelah `DaftarHalaman.tsx` diganti. Rujukan `docs/` dan `tests/` pada struktur proyek diperbarui |
 | 2026-10-17 | 0.9 | Fase 4 dicentang (4.0 sampai 4.9) berdasarkan laporan pengguna (hasil uji orientasi foto belum dirinci); fase berjalan menjadi Fase 5. Fase 5 diperinci menjadi tugas 5.0 sampai 5.9 dan panduan Fase 5 ditulis. Ditambah K27 sampai K30, backlog B14 dan B15, dan baris risiko unsigned preset. **Koreksi dan temuan:** (1) K23 v0.8 berharap Fase 5 mengunggah per halaman segera setelah "Pakai foto"; diganti K27 (unggah saat Simpan dokumen) karena unggahan tanpa tanda tangan tidak bisa dihapus dan urut ulang akan meninggalkan unggahan terbuang; catatan diagram ikut diubah. (2) Rincian parameter metode `upload` pada dokumentasi Cloudinary tidak terbaca utuh (halaman referensi memuat navigasi saja), jadi tugas 5.1 mewajibkan bukti `curl` oleh pengguna. (3) Klaim "0 galat typecheck di tiap tahap" ternyata keliru saat diputar ulang: ada satu galat sementara di `kamera.tsx` antara langkah 8.1 dan 8.3; panduan menjelaskannya. (4) Rujukan "normalisasi di 4.5" pada tabel risiko diperbaiki menjadi 4.3 |
 | 2026-10-16 | 0.8 | Fase 3 dicentang (3.0 sampai 3.9) berdasarkan laporan pengguna; 2.0 dan 2.9 ikut dicentang karena ditutup di tugas 3.0; fase berjalan menjadi Fase 4. Fase 4 diperinci menjadi tugas 4.0 sampai 4.9 (urutan mengikuti urutan pengerjaan; pemetaan dari v0.7 dicatat di bagian Fase 4) dan panduan Fase 4 ditulis. Ditambah K23 sampai K26 dan backlog B11 sampai B13. **Koreksi dan temuan:** dokumentasi daring `expo-image-manipulator` memuat API SDK 58, jadi tipe SDK 54 diperiksa langsung di `node_modules` (`manipulate`, `renderAsync`, `saveAsync`, `release` tersedia di versi 14.0.8); uji menemukan cacat sesi scan yang muncul lagi setelah keluar lalu masuk dengan akun yang sama dan sudah diperbaiki (state sesi diatur ulang saat pemilik berubah); `cek-kontras` menjadi 16 pasangan |
 | 2026-10-14 | 0.7 | Fase 2 dicentang (2.1 sampai 2.8, laporan pengguna) kecuali 2.0 dan 2.9: pengguna menyampaikan `ROADMAP.md` dan panduan fase 0 sampai 2 tidak pernah dimasukkan ke folder proyek, dan cek repo memastikan `main` berhenti di PR #1 dengan empat berkas nyasar masih ada; penutupnya dipindah ke tugas 3.0. Fase 3 diperinci menjadi 3.0 sampai 3.9 dan panduan Fase 3 ditulis. **Koreksi:** tugas 3.1 lama menyebut `expo-sqlite`, dokumentasi Supabase terbaru memakai AsyncStorage (K19). Ditambah K19 sampai K22, backlog B9 (konfirmasi email dan reset sandi via deep link) dan B10 (enkripsi sesi). `cek-kontras` menangkap cacat pada kotak pesan galat rancangan awal (teks merah di latar merah muda 4,37:1) sehingga teks kotak pesan memakai warna teks utama; pasangan menjadi 15 |
@@ -422,7 +443,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | 2026-10-10 | 0.2 | Fase 0 dimulai. Hasil verifikasi: tag `latest` Expo sudah SDK 57 (wajib `--template default@sdk-54`); TypeScript strict dan ESLint sudah aktif di template; `.env` belum di-ignore template; cabang awal `master`; kunci Supabase memakai publishable key (K12, K13). Permintaan: tutorial Supabase dari nol, ditambahkan sebagai tugas 0.9 `[IMPROVISASI, P1]` dan migrasi serta uji RLS Fase 2 disiapkan lebih awal. Panduan baru di `docs/` |
 | 2026-10-10 | 0.1 | Roadmap pertama. Hasil verifikasi mengubah rancangan awal: percantik lewat Cloudinary (K7), crop manual (K8), `USERS` jadi `profiles` (K10), urutan alur unggah sebelum percantik |
 
-## 10. Sumber verifikasi (diakses 2026-10-10; tambahan Cloudinary diakses 2026-10-17)
+## 10. Sumber verifikasi (diakses 2026-10-10; tambahan Cloudinary diakses 2026-10-17 dan 2026-10-18)
 
 - Expo SDK 54: https://expo.dev/changelog/sdk-54
 - expo-image-manipulator (SDK 54): https://docs.expo.dev/versions/v54.0.0/sdk/imagemanipulator/
@@ -458,3 +479,8 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 - Cloudinary, Client-side uploading, keamanan unggahan tanpa tanda tangan (diakses 2026-10-17): https://cloudinary.com/documentation/client_side_uploading
 - Cloudinary, Upload API reference (diakses 2026-10-17; rincian metode `upload` tidak terbaca utuh): https://cloudinary.com/documentation/image_upload_api_reference
 - Cloudinary, perbandingan paket: Free 10 MB per gambar dan 25 megapiksel (diakses 2026-10-17): https://cloudinary.com/pricing/compare-plans
+- Cloudinary, Transformation URL API reference dan Image transformations (diakses 2026-10-18; sintaks juga diuji langsung lewat konektor): https://cloudinary.com/documentation/transformation_reference dan https://cloudinary.com/documentation/image_transformations
+- Cloudinary, perbandingan paket: 1 kredit = 1.000 transformasi, 1 GB penyimpanan, atau 1 GB bandwidth; transformasi unik dihitung sekali (diakses 2026-10-18): https://cloudinary.com/pricing/compare-plans
+- Expo, `expo-image` SDK 54 (diakses 2026-10-18): https://docs.expo.dev/versions/v54.0.0/sdk/image/
+- React Native, PanResponder (diakses 2026-10-18): https://reactnative.dev/docs/panresponder
+- Node.js, `node --test` (diakses 2026-10-18): https://nodejs.org/api/test.html
