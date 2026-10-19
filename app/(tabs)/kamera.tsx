@@ -1,5 +1,5 @@
 import type { FlashMode } from 'expo-camera';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import {
@@ -16,6 +16,7 @@ import {
 type Tahap = 'kamera' | 'tinjau' | 'daftar';
 
 export default function KameraScreen() {
+  const router = useRouter();
   const { pages, isFull, isLocked, judul, setJudul, addPage, removePage, movePage, clear } =
     useScanSession();
   const { simpan, menyimpan, galat: galatSimpan, selesai, sisa } = useSimpanDokumen();
@@ -91,6 +92,7 @@ export default function KameraScreen() {
         sisa={sisa}
         selesai={selesai}
         galat={galatSimpan}
+        onPercantik={() => router.push('/percantik')}
         onTambah={() => setTahap('kamera')}
         onHapus={removePage}
         onGeser={movePage}

@@ -7,5 +7,6 @@ export { LoadingScreen } from './LoadingScreen';
 export { PlaceholderScreen } from './PlaceholderScreen';
 export { Screen } from './Screen';
 export { ScreenHeader } from './ScreenHeader';
+export { Slider } from './Slider';
 export { TextField } from './TextField';
 

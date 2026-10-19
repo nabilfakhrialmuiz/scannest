@@ -20,6 +20,8 @@ type DaftarHalamanProps = {
   onHapus: (id: string) => void;
   onGeser: (id: string, direction: -1 | 1) => void;
   onMulaiUlang: () => void;
+  /** Setelah tersimpan: buka tab Percantik (Fase 6). */
+  onPercantik: () => void;
   /** Penyimpanan (tugas 5.6): unggah ke Cloudinary lalu catat ke database. */
   onSimpan: () => void;
   menyimpan: boolean;
@@ -75,6 +77,7 @@ export function DaftarHalaman({
   onHapus,
   onGeser,
   onMulaiUlang,
+  onPercantik,
   onSimpan,
   menyimpan,
   sisa,
@@ -103,7 +106,10 @@ export function DaftarHalaman({
       {galat ? <Banner message={galat} /> : null}
 
       {selesai ? (
-        <Button title="Mulai sesi baru" fullWidth onPress={onMulaiUlang} />
+        <>
+          <Button title="Percantik foto" fullWidth onPress={onPercantik} />
+          <Button title="Mulai sesi baru" variant="secondary" fullWidth onPress={onMulaiUlang} />
+        </>
       ) : (
         <>
           <TextField
