@@ -1,18 +1,16 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { PlaceholderScreen } from '@/components';
+import { LoadingScreen } from '@/components';
+import { useAuth } from '@/features/auth';
+import { DetailDokumen } from '@/features/dokumen';
 
 export default function DokumenDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { session } = useAuth();
+  const userId = session?.user.id;
 
-  return (
-    <PlaceholderScreen
-      icon="documents-outline"
-      title="Detail dokumen"
-      fase="Fase 7"
-      description={`Halaman-halaman dokumen "${id}" akan tampil di sini.`}
-      edges={['bottom']}
-    />
-  );
+  if (!userId || !id) return <LoadingScreen />;
+  // key: berpindah ke dokumen lain mengosongkan keadaan lokal (indeks halaman, dialog).
+  return <DetailDokumen key={id} userId={userId} dokumenId={id} />;
 }
-

@@ -4,3 +4,4 @@ export { GalatEditor, muatDokumenPercantik, muatHalaman, simpanEfek } from './ap
 export { DaftarPercantik } from './DaftarPercantik';
 export { EditorFoto } from './EditorFoto';
 export type { DokumenPercantik, HalamanEditor, HalamanRingkas } from './skema';
+export { useDebouncedValue } from './useDebouncedValue';
