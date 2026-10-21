@@ -1,6 +1,6 @@
 # Panduan Fase 6: Percantik Foto, Non-destruktif (Scannest)
 
-**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 18 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.10 (Fase 6, tugas 6.0 sampai 6.12)
+**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 21 Oktober 2026 (checklist dicentang; isi tidak berubah) · **Sinkron dengan:** `ROADMAP.md` v0.11 (Fase 6, tugas 6.0 sampai 6.12)
 
 Setelah Fase 6 selesai, setiap halaman yang sudah tersimpan di cloud bisa **dipercantik**: crop dengan menarik sudut, putar 90°, filter (Dokumen, Hitam-putih, Abu-abu, Tajam), kecerahan, dan kontras, dengan **pratinjau langsung**, tombol **Bandingkan** dan **Reset**, lalu **Simpan**. Foto asli di Cloudinary **tidak pernah diubah**: yang disimpan hanyalah *resep efek* di tabel `efek_foto`, dan Cloudinary menghitung hasilnya lewat URL. Tab **Percantik** menampilkan halaman mana yang belum dikerjakan.
 
@@ -3063,15 +3063,15 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 Sama dengan "Selesai bila" Fase 6 di `ROADMAP.md`.
 
-- [ ] Dokumen terbaru dan cabang `fase-6-percantik` siap (6.0)
-- [ ] Sintaks transformasi terbukti di browser-mu (6.1)
-- [ ] `buildCloudinaryUrl` dan model efek lulus `npm test` (6.2, 6.3)
-- [ ] Editor memuat foto dan efek tersimpan; crop 4 sudut, putar, filter, kecerahan, kontras bekerja di HP (6.4 sampai 6.7)
-- [ ] Bandingkan dan Reset bekerja (6.8)
-- [ ] **Simpan** menulis `efek_foto` dan `url_hasil`; status dokumen menjadi `selesai` setelah semua halaman (6.9)
-- [ ] Tab **Percantik** dan tombol **Percantik foto** bekerja (6.10)
-- [ ] Pemakaian transformasi Cloudinary dipantau dan dilaporkan (6.11)
-- [ ] `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau (6.12)
+- [x] Dokumen terbaru dan cabang `fase-6-percantik` siap (6.0)
+- [x] Sintaks transformasi terbukti di browser-mu (6.1)
+- [x] `buildCloudinaryUrl` dan model efek lulus `npm test` (6.2, 6.3)
+- [x] Editor memuat foto dan efek tersimpan; crop 4 sudut, putar, filter, kecerahan, kontras bekerja di HP (6.4 sampai 6.7)
+- [x] Bandingkan dan Reset bekerja (6.8)
+- [x] **Simpan** menulis `efek_foto` dan `url_hasil`; status dokumen menjadi `selesai` setelah semua halaman (6.9)
+- [x] Tab **Percantik** dan tombol **Percantik foto** bekerja (6.10)
+- [x] Pemakaian transformasi Cloudinary dipantau dan dilaporkan (6.11)
+- [x] `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau (6.12)
 
 ---
 

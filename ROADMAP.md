@@ -3,9 +3,9 @@
 Aplikasi Android untuk memindai dokumen, merapikan hasilnya, dan menyimpannya di cloud.
 Stack: Expo SDK 54 (React Native), Supabase, Cloudinary.
 
-- Versi dokumen: 0.10
-- Terakhir diperbarui: 2026-10-19
-- Fase berjalan: **Fase 6 (Percantik foto)**, panduan `docs/panduan-fase-6.md`. Fase 0 sampai 5 selesai (centang berdasarkan laporan pengguna; Fase 5 dilaporkan selesai pada 2026-10-18 setelah koreksi contoh `curl`; hasil uji orientasi foto Fase 4 belum dirinci pengguna). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-fase-4.md`, `docs/panduan-fase-5.md`, `docs/panduan-supabase.md`
+- Versi dokumen: 0.11
+- Terakhir diperbarui: 2026-10-21
+- Fase berjalan: **Fase 7 (Dashboard dan manajemen dokumen)**, panduan `docs/panduan-fase-7.md`. Fase 0 sampai 6 selesai (centang berdasarkan laporan pengguna; Fase 6 dilaporkan selesai pada 2026-10-20 tanpa rincian hasil uji HP dan pemantauan kuota Cloudinary 6.11; hasil uji orientasi foto Fase 4 juga belum dirinci). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-fase-4.md`, `docs/panduan-fase-5.md`, `docs/panduan-fase-6.md`, `docs/panduan-supabase.md`
 
 ---
 
@@ -86,6 +86,15 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 | K37 | Urutan dan sumber crop | Crop dikerjakan pada foto asli, sebelum rotasi; koordinat piksel foto asli di `data_crop`; `c_crop,g_north_west` | Sesuai urutan rantai crop → rotasi → efek; sintaks diuji | Tidak bisa crop pada tampilan yang sudah diputar (B16) |
 | K38 | Status dokumen `selesai` | Bila setiap halaman punya baris `efek_foto` (termasuk **Simpan tanpa efek**); pembaruan status bersifat pelengkap | Satu ketukan per halaman, tanpa tombol "selesai" | "Selesai" berarti "sudah ditinjau". Tiga langkah simpan bukan satu transaksi (B19) |
 | K39 | Bandingkan sebelum/sesudah | Tombol sakelar (bukan tahan-tekan) | Mudah untuk pembaca layar dan satu tangan | Satu ketukan tambahan |
+| K40 | Nama dan tugas Edge Function hapus | `delete-document` (menggantikan `delete-asset` di v0.10): menghapus SEMUA file halaman di Cloudinary lalu baris `dokumen` | Satu pemanggilan menyelesaikan dua hal yang harus berurutan; nama menggambarkan hasilnya. `admin-delete-document` (Fase 8) tetap fungsi terpisah | Dua fungsi hapus dokumen yang mirip (pengguna dan admin) |
+| K41 | Hak akses function | Memakai JWT pemanggil dan RLS, **bukan** service role; API secret Cloudinary hanya sebagai secret function (`supabase secrets set`) | Tidak ada kunci yang melewati RLS di function ini; pemilik dokumen diperiksa dua kali (kode dan RLS); `verify_jwt` bawaan menolak pemanggil tanpa JWT | Akun nonaktif dan admin tidak bisa memakainya (admin punya fungsi Fase 8). Hak `delete` langsung pada tabel masih ada, jadi klien nakal bisa menghapus baris tanpa file (B21) |
+| K42 | Urutan dan keamanan penghapusan | File Cloudinary lebih dulu (paling banyak 4 bersamaan), baru baris database; gagal sebagian = baris tidak disentuh dan pengguna mengulang; "not found" dianggap berhasil | Tidak ada file yatim yang kehilangan jejak; aman diulang | Bila baris gagal dihapus setelah file hilang, dokumen tampil dengan gambar rusak sampai hapus diulang (pesan khusus `gagal_hapus_baris`) |
+| K43 | URL gambar mini dan detail | Mini: `c_fill,g_north,h_300,w_300,f_auto,q_auto`; detail: `c_limit,h_1200,w_1200,f_auto,q_auto`; keduanya ditambahkan di AKHIR rantai efek pada `url_hasil` (menggantikan `c_fill,w_300` di v0.10) | Persegi dengan bagian atas halaman (kop surat) terlihat, bukan potongan tengah; diuji lewat konektor Cloudinary (hasil 300×300 setelah rantai crop, putar, dan efek) | Dokumen yang isinya di tengah bawah terpotong di gambar mini; satu URL unik per ukuran |
+| K44 | Data di aplikasi | TanStack Query v5: kunci cache diawali id pengguna; `staleTime` 30 detik; disegarkan saat layar kembali terlihat (`useFocusEffect`); cache dibuang saat keluar; ulang sekali kecuali galat izin dan tidak ada; pembacaan Supabase memakai `.retry(false)` | Cache dan paginasi siap pakai; data akun lain tidak pernah tercampur. Temuan uji: `postgrest-js` 2.117.3 mengulang GET sendiri 3 kali (1, 2, 4 detik), sehingga ditambah ulang TanStack galat baru tampil setelah ±16 detik; kini satu lapis | Satu dependensi lagi (`@tanstack/react-query`); layar Fase 6 masih memakai pembacaan lama dengan ulang bawaan (B23) |
+| K45 | Dialog konfirmasi | Komponen `Dialog` buatan sendiri di atas `Modal` React Native (bukan `Alert`) | Bisa memuat kolom isian dan pesan galat di dalam dialog; tombol terkunci saat proses; tampilan seragam | Kode yang dirawat sendiri; fokus keyboard dan pembaca layar di Android belum teruji di HP |
+| K46 | Paginasi, pencarian, filter | Offset 20 baris (`range`), urut `dibuat_pada` lalu `id` menurun; pencarian `ilike %kata%` ditunda 400 ms, maksimal 100 karakter, karakter `%`, `_`, `\` di-escape; filter status; semuanya di server | Cepat untuk ratusan dokumen; tidak ada duplikat meski dokumen baru menggeser baris (`gabungTanpaGanda`) | `ilike '%...%'` tidak memakai indeks biasa (cukup untuk ratusan baris; B22); satu permintaan tambahan bila total persis kelipatan 20 |
+| K47 | Dashboard hanya dokumen sendiri | Kueri daftar dan detail memfilter `user_id` secara eksplisit | RLS mengizinkan admin membaca semua dokumen; tanpa filter, Dashboard admin menampilkan dokumen semua orang | Dokumen orang lain baru terlihat lewat panel admin (Fase 8) |
+| K48 | Detail dokumen | `FlatList` mendatar dengan `pagingEnabled`, plus tombol panah dan penanda "Halaman n dari m"; tombol **Percantik halaman ini** membuka editor | Bisa digeser dan bisa dioperasikan tanpa gestur (aksesibilitas) | Zoom cubit belum ada (B24) |
 
 ### Dampak ke diagram yang sudah dibuat
 
@@ -121,15 +130,15 @@ scannest/
 │  └─ +not-found.tsx          # halaman 404
 ├─ src/
 │  ├─ components/             # Button, Card, EmptyState, ...
-│  ├─ features/               # auth, scan, editor, documents, admin
+│  ├─ features/               # auth, scan, editor, dokumen, admin
 │  ├─ lib/                    # supabase.ts, cloudinary.ts, env.ts
 │  └─ theme/                  # warna, spasi, tipografi
 ├─ supabase/
 │  ├─ migrations/             # SQL skema + RLS
-│  └─ functions/              # Edge Functions
+│  └─ functions/              # Edge Functions (delete-document: Fase 7, logic.ts diuji `npm test`)
 ├─ scripts/cek-kontras.mjs    # cek kontras warna (Fase 1, tugas 1.2)
-├─ docs/                      # panduan-fase-0.md sampai panduan-fase-6.md, panduan-supabase.md; ERD dan diagram di Fase 10
-├─ tests/                     # uji unit `node --test` (Fase 6)
+├─ docs/                      # panduan-fase-0.md sampai panduan-fase-7.md, panduan-supabase.md; ERD dan diagram di Fase 10
+├─ tests/                     # uji unit `node --test` (Fase 6 dan 7)
 ├─ ROADMAP.md  README.md
 ├─ .env.example  .env (lokal, tidak di-commit)
 ├─ .prettierrc  .prettierignore  eslint.config.js   # Fase 0, tugas 0.4
@@ -303,35 +312,41 @@ Panduan rinci: `docs/panduan-fase-5.md`. Nomor 5.1 sampai 5.7 sama dengan v0.8 (
 
 Panduan rinci: `docs/panduan-fase-6.md`. Nomor 6.1 sampai 6.11 sama dengan v0.9 (isinya diperinci dan beberapa alat diganti: K31, K33, K34); 6.0 dan 6.12 ditambahkan di v0.10. Kerjakan di cabang `fase-6-percantik`. Semua efek disimpan sebagai parameter di `efek_foto`; foto asli tidak berubah; `url_hasil` berisi URL beresep. Urutan rantai transformasi: **crop → rotasi → filter → kecerahan → kontras**.
 
-Kodenya sudah teruji sebagai aplikasi web melawan **Cloudinary (tiruan gambar PIL) dan tabel database tiruan** (101 pemeriksaan e2e di 9 kelompok skenario; regresi Fase 5: 48 skenario) dan 34 uji unit (`npm test`); sintaks transformasi diuji langsung ke akun Cloudinary lewat konektor pada 2026-10-18; urutan langkah panduan diputar ulang dengan 0 galat typecheck setelah tiap berkas kecuali satu galat sementara di antara `DaftarHalaman.tsx` dan `kamera.tsx` (panduan bagian 7). **Belum terbukti** (hanya bisa dibuktikan pengguna): Supabase sungguhan (`upsert` dan `update` terhadap RLS, bentuk embed `efek_foto`), gestur crop dan slider di layar sentuh Android, `Image.prefetch` di Android, dan tampilan visual efek dari Cloudinary asli.
+Status 2026-10-20: **selesai menurut laporan pengguna** ("untuk fase 6 sudah selesai semua"; rincian hasil uji HP dan angka pemakaian Cloudinary di 6.11 belum dilaporkan). Sebelumnya: kodenya sudah teruji sebagai aplikasi web melawan **Cloudinary (tiruan gambar PIL) dan tabel database tiruan** (101 pemeriksaan e2e di 9 kelompok skenario; regresi Fase 5: 48 skenario) dan 34 uji unit (`npm test`); sintaks transformasi diuji langsung ke akun Cloudinary lewat konektor pada 2026-10-18; urutan langkah panduan diputar ulang dengan 0 galat typecheck setelah tiap berkas kecuali satu galat sementara di antara `DaftarHalaman.tsx` dan `kamera.tsx` (panduan bagian 7). **Belum terbukti** (hanya bisa dibuktikan pengguna): Supabase sungguhan (`upsert` dan `update` terhadap RLS, bentuk embed `efek_foto`), gestur crop dan slider di layar sentuh Android, `Image.prefetch` di Android, dan tampilan visual efek dari Cloudinary asli.
 
-- [ ] 6.0 Tutup Fase 5 dan persiapan: `main` bersih dan Fase 5 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-6-percantik`; laporkan foto uji yang miring di Cloudinary, bila ada.
-- [ ] 6.1 **Verifikasi sintaks** transformasi: crop berkoordinat (`c_crop,g_north_west,...`), rotasi (`a_90`), `e_improve`, `e_blackwhite`, `e_grayscale`, `e_sharpen`, `e_brightness` (-99 sampai 100), `e_contrast` (-100 sampai 100), `c_limit` + `q_auto`. Saya sudah menguji lewat konektor (2026-10-18); pengguna membuktikan empat URL di browser (panduan 3.2).
-- [ ] 6.2 Fungsi murni `buildCloudinaryUrl(urlAsli, efek, opsi)` (K33) dan model `efek.ts`, dengan uji unit `node --test` (K34) untuk semua kombinasi (asli, dokumen, hitam-putih, abu-abu, tajam, kecerahan, kontras, rotasi, crop, pengecilan pratinjau).
-- [ ] 6.3 Layar editor `editor/[halamanId]`: memuat halaman dan `efek_foto` yang tersimpan (`muatHalaman`, pembacaan dengan zod), galat dengan **Coba lagi**; geometri crop murni (`crop.ts`) dengan uji unit.
-- [ ] 6.4 Overlay crop 4 sudut dan badan yang bisa digeser, koordinat dalam piksel foto asli, ukuran minimum, area sentuh 48 dp (K31, K37).
-- [ ] 6.5 Tombol putar 90°.
-- [ ] 6.6 Chip filter: Asli, Dokumen (`e_improve`), Hitam-putih, Abu-abu, Tajam.
-- [ ] 6.7 Slider kecerahan dan kontras (K32, langkah 5), pratinjau ditunda 300 ms dengan indikator "Memuat pratinjau..." dan tombol **Muat ulang pratinjau** saat gagal (K35, K36).
-- [ ] 6.8 Tombol **Bandingkan** (K39) dan **Reset**.
-- [ ] 6.9 **Simpan**: upsert `efek_foto`, perbarui `halaman_dokumen.url_hasil`, ubah status dokumen menjadi `selesai` bila semua halaman punya efek (K38); galat jaringan, izin, dan nol baris ditangani.
-- [ ] 6.10 Tab **Percantik**: daftar dokumen dan halaman (Belum/Selesai, gambar mini), ketuk untuk membuka editor; tombol **Percantik foto** setelah dokumen tersimpan di tab Kamera.
-- [ ] 6.11 Pantau pemakaian transformasi di dashboard Cloudinary selama pengujian (1.000 transformasi = 1 kredit; per 2026-10-18 akun tercatat 47 transformasi dan 0,22 dari 25 kredit).
-- [ ] 6.12 Uji di HP memakai daftar di panduan 9.2 dan cek baris di tabel (`select` di SQL Editor), lalu commit, pull request, CI hijau, merge.
+- [x] 6.0 Tutup Fase 5 dan persiapan: `main` bersih dan Fase 5 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-6-percantik`; laporkan foto uji yang miring di Cloudinary, bila ada.
+- [x] 6.1 **Verifikasi sintaks** transformasi: crop berkoordinat (`c_crop,g_north_west,...`), rotasi (`a_90`), `e_improve`, `e_blackwhite`, `e_grayscale`, `e_sharpen`, `e_brightness` (-99 sampai 100), `e_contrast` (-100 sampai 100), `c_limit` + `q_auto`. Saya sudah menguji lewat konektor (2026-10-18); pengguna membuktikan empat URL di browser (panduan 3.2).
+- [x] 6.2 Fungsi murni `buildCloudinaryUrl(urlAsli, efek, opsi)` (K33) dan model `efek.ts`, dengan uji unit `node --test` (K34) untuk semua kombinasi (asli, dokumen, hitam-putih, abu-abu, tajam, kecerahan, kontras, rotasi, crop, pengecilan pratinjau).
+- [x] 6.3 Layar editor `editor/[halamanId]`: memuat halaman dan `efek_foto` yang tersimpan (`muatHalaman`, pembacaan dengan zod), galat dengan **Coba lagi**; geometri crop murni (`crop.ts`) dengan uji unit.
+- [x] 6.4 Overlay crop 4 sudut dan badan yang bisa digeser, koordinat dalam piksel foto asli, ukuran minimum, area sentuh 48 dp (K31, K37).
+- [x] 6.5 Tombol putar 90°.
+- [x] 6.6 Chip filter: Asli, Dokumen (`e_improve`), Hitam-putih, Abu-abu, Tajam.
+- [x] 6.7 Slider kecerahan dan kontras (K32, langkah 5), pratinjau ditunda 300 ms dengan indikator "Memuat pratinjau..." dan tombol **Muat ulang pratinjau** saat gagal (K35, K36).
+- [x] 6.8 Tombol **Bandingkan** (K39) dan **Reset**.
+- [x] 6.9 **Simpan**: upsert `efek_foto`, perbarui `halaman_dokumen.url_hasil`, ubah status dokumen menjadi `selesai` bila semua halaman punya efek (K38); galat jaringan, izin, dan nol baris ditangani.
+- [x] 6.10 Tab **Percantik**: daftar dokumen dan halaman (Belum/Selesai, gambar mini), ketuk untuk membuka editor; tombol **Percantik foto** setelah dokumen tersimpan di tab Kamera.
+- [x] 6.11 Pantau pemakaian transformasi di dashboard Cloudinary selama pengujian (1.000 transformasi = 1 kredit; per 2026-10-18 akun tercatat 47 transformasi dan 0,22 dari 25 kredit).
+- [x] 6.12 Uji di HP memakai daftar di panduan 9.2 dan cek baris di tabel (`select` di SQL Editor), lalu commit, pull request, CI hijau, merge.
 
 **Selesai bila:** efek terlihat di pratinjau, tersimpan di `efek_foto`, `url_hasil` membuka hasil yang sama, dan efek kembali persis saat editor dibuka ulang; status dokumen menjadi `selesai` setelah semua halaman diproses; foto asli di Cloudinary tidak berubah; tidak ada rahasia di aplikasi atau repo; `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau.
 
 ### Fase 7 — Dashboard dan manajemen dokumen
 
-- [ ] 7.1 Daftar dokumen (`FlatList`, pull-to-refresh, paginasi) dengan TanStack Query.
-- [ ] 7.2 Thumbnail memakai URL Cloudinary berukuran kecil (misalnya `c_fill,w_300,f_auto,q_auto`) dan `expo-image` untuk cache.
-- [ ] 7.3 Detail dokumen: geser antar halaman, tampilkan `url_hasil`.
-- [ ] 7.4 Ganti nama dokumen.
-- [ ] 7.5 Hapus dokumen: pemanggilan Edge Function `delete-asset` yang menghapus file di Cloudinary lebih dulu, baru baris database (halaman dan efek ikut terhapus lewat cascade).
-- [ ] 7.6 Pencarian judul dan filter status.
-- [ ] 7.7 Empty state dan skeleton loading.
+Panduan rinci: `docs/panduan-fase-7.md`. Nomor 7.1 sampai 7.7 sama dengan v0.10 (isinya diperinci; beberapa alat berubah: K40, K43, K44); 7.0 dan 7.8 ditambahkan di v0.11. Kerjakan di cabang `fase-7-dashboard`. Dashboard menampilkan dokumen milik sendiri (K47); hapus berjalan lewat Edge Function `delete-document` (K40 sampai K42).
 
-**Selesai bila:** CRUD dokumen lengkap, hapus benar-benar menghapus file di Cloudinary, daftar tetap lancar dengan 50+ dokumen uji.
+Kodenya sudah teruji sebagai aplikasi web (React Native Web, Chromium) melawan **database, Cloudinary, dan Edge Function tiruan**: 75 pemeriksaan e2e (daftar 60 dokumen dengan skeleton dan paginasi, pencarian dan filter, empty state dan galat, detail dan pager, ganti nama, hapus dengan skenario batal, 502, 404, 403, jaringan putus, dan sukses; layar 360 px), regresi Fase 6 (101) dan Fase 5 (48) lulus, **81 uji unit** (`npm test`: 34 lama + 47 baru, termasuk vektor tanda tangan Cloudinary dari dokumentasi). Edge Function lolos `deno check` dan **dijalankan di Deno 2.9.6** melawan server Supabase dan Cloudinary tiruan (15 skenario: urutan hapus file lalu baris, tanda tangan dihitung ulang oleh penerima, 401, 403, 404, 502). Skrip seed 55 dokumen diuji di PostgreSQL 16 dengan migrasi Fase 2. **Belum terbukti** (hanya bisa dibuktikan pengguna): function terpasang di proyekmu (secret terbaca, `verify_jwt`), balasan `destroy` asli dari Cloudinary dan apakah gambar turunan ikut terhapus, perilaku PostgREST asli untuk `halaman_dokumen.limit=1` dan `ilike`, gestur geser pager dan pull-to-refresh di Android, serta kelancaran 55 dokumen di HP.
+
+- [ ] 7.0 Tutup Fase 6 dan persiapan: `main` bersih dan Fase 6 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-7-dashboard`, `npm install @tanstack/react-query`; laporkan hasil uji HP Fase 6 dan angka pemakaian Cloudinary (6.11) bila ada.
+- [ ] 7.1 Daftar dokumen di Dashboard: `FlatList`, pull-to-refresh, paginasi 20 baris, TanStack Query (K44, K46, K47); disegarkan saat layar kembali terlihat.
+- [ ] 7.2 Gambar mini dari `url_hasil` dengan `c_fill,g_north,h_300,w_300,f_auto,q_auto` di akhir rantai efek (K43), ditampilkan dengan `expo-image` (cache disk).
+- [ ] 7.3 Detail dokumen: geser antar halaman, tombol panah, penanda "Halaman n dari m", tampil `url_hasil` dengan `c_limit,h_1200` (K43, K48), tombol **Percantik halaman ini**.
+- [ ] 7.4 Ganti nama dokumen (dialog, validasi 1 sampai 120 karakter, galat di dalam dialog).
+- [ ] 7.5 Hapus dokumen lewat Edge Function `delete-document` (K40 sampai K42): deploy, atur secret Cloudinary, uji `curl`; hapus file di Cloudinary lebih dulu, baru baris (halaman dan efek ikut terhapus lewat cascade); dialog konfirmasi dan pesan galat per kasus.
+- [ ] 7.6 Pencarian judul (ditunda 400 ms) dan filter status Semua, Draft, Selesai, dapat digabung (K46).
+- [ ] 7.7 Empty state (belum ada dokumen, tidak ada hasil) dan skeleton loading di daftar dan detail.
+- [ ] 7.8 Uji di HP memakai daftar di panduan 9.2, termasuk 55 dokumen uji lewat skrip seed (9.1), hapus nyata yang dicek di Media Library Cloudinary, pemantauan kuota, lalu commit, pull request, CI hijau, merge.
+
+**Selesai bila:** CRUD dokumen lengkap (daftar, detail, ganti nama, hapus); hapus benar-benar menghilangkan file di Cloudinary dan baris di database; daftar tetap lancar dengan 50+ dokumen uji; Dashboard hanya menampilkan dokumen milik sendiri; tidak ada rahasia di aplikasi atau repo (API secret Cloudinary hanya di secret function); `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau.
 
 ### Fase 8 — Panel admin
 
@@ -398,6 +413,11 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | B18 | Peringatan "perubahan belum disimpan" saat menutup editor | P2 | Fase 9 | Usulan |
 | B19 | Simpan efek sebagai satu transaksi (fungsi RPC di database) agar `efek_foto`, `url_hasil`, dan status dokumen tidak pernah setengah jalan | P2 | Fase 9 | Usulan |
 | B20 | Pindahkan uji unit Fase 4 dan 5 ke `tests/` dan evaluasi Jest untuk uji komponen | P2 | Fase 9 | Usulan |
+| B21 | Cabut hak `delete` langsung pada `dokumen` dan `halaman_dokumen` dari `authenticated` agar penghapusan hanya lewat Edge Function (K41); kerjakan setelah Fase 8 supaya admin tetap punya jalur hapus | P1 | Fase 9 | Usulan |
+| B22 | Pencarian berskala besar: indeks `pg_trgm` untuk `ilike '%kata%'` atau pencarian teks penuh (K46) | P3 | Setelah v1.0.0 | Usulan |
+| B23 | Samakan pembacaan Fase 6 (editor, tab Percantik) dengan K44: `.retry(false)` atau TanStack Query, agar galat jaringan tampil dalam hitungan detik, bukan ±7 detik | P2 | Fase 9 | Usulan |
+| B24 | Zoom cubit dan geser di detail halaman | P3 | Setelah Fase 9 | Usulan |
+| B25 | Pilih banyak dokumen lalu hapus sekaligus (antrean dan kemajuan di function) | P3 | Setelah v1.0.0 | Usulan |
 
 ---
 
@@ -412,6 +432,8 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | Orientasi EXIF membuat crop meleset | Hasil crop salah | Normalisasi di 4.3 dan uji foto portrait/landscape (laporan hasil 12.2 nomor 7 sampai 9 ditunggu di 5.0) |
 | Unsigned preset terbaca dari APK (K5) | Orang lain mengunggah ke akunmu dan menghabiskan kuota | Batasan preset (`allowed_formats`, `disallow_public_id`, transformasi masuk), pantau dashboard, B14 (unggahan bertanda tangan) |
 | Secret ikut ter-commit | Akun disalahgunakan | `.env` di `.gitignore`, hanya kunci publik di aplikasi, tinjau di 9.2 |
+| Hapus dokumen meninggalkan file yatim atau baris tanpa file | Kuota Cloudinary terbuang atau gambar rusak di daftar | Urutan hapus file lalu baris, aman diulang (K42); pantau Media Library; B15 dan B21 |
+| Balasan atau perilaku `destroy` Cloudinary berbeda dari dugaan (termasuk penghapusan gambar turunan) | Hapus gagal atau file turunan tersisa | Diuji di HP pada 7.8 (hapus nyata, cek Media Library dan URL lama); log function mencatat penyebabnya |
 | Scope membengkak | Rilis molor | Aturan prioritas bagian 0; improvisasi non-P0 masuk antrean |
 
 ---
@@ -432,6 +454,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 2026-10-21 | 0.11 | Fase 6 dicentang (6.0 sampai 6.12) berdasarkan laporan pengguna (2026-10-20, tanpa rincian uji HP dan pemantauan Cloudinary); fase berjalan menjadi Fase 7. Fase 7 diperinci menjadi tugas 7.0 sampai 7.8 dan panduan Fase 7 ditulis. Ditambah K40 sampai K48 (nama fungsi hapus menjadi `delete-document` bukan `delete-asset`; gambar mini `c_fill,g_north` bukan `c_fill,w_300`; TanStack Query dengan cache per pengguna; dialog buatan sendiri), backlog B21 sampai B25, dan dua baris risiko. **Temuan dan koreksi:** (1) gambar mini `c_fill,w_300` memotong bagian tengah dan membuang kop surat; diganti `c_fill,g_north,h_300,w_300` yang diuji ke akun Cloudinary lewat konektor (hasil 300×300 setelah rantai crop, putar, dan efek; gambar turunan uji dibersihkan); (2) RLS mengizinkan admin membaca semua dokumen, jadi daftar harus memfilter `user_id` (K47); (3) uji jaringan putus menemukan `postgrest-js` 2.117.3 mengulang GET 3 kali dengan jeda 1, 2, 4 detik, sehingga bersama ulang TanStack galat baru tampil ±16 detik; diperbaiki dengan `.retry(false)` dan satu lapis ulang (K44); layar Fase 6 masih punya perilaku lama (B23); (4) penanda halaman di detail sempat berkedip mundur saat tombol panah ditekan karena peristiwa gulir di tengah animasi menimpa nilai; diperbaiki; (5) Edge Function dan tsc: berkas `supabase/functions/*/index.ts` memakai API Deno, jadi dikecualikan dari `tsconfig.json` dan ESLint, sedangkan `logic.ts` (logika murni) tetap diperiksa dan diuji `npm test`; `index.ts` diperiksa dengan `deno check` di sandbox; (6) harness e2e Fase 5 disesuaikan karena Dashboard kini membaca tabel `dokumen` (bukan regresi aplikasi); (7) struktur proyek: `features/documents` menjadi `features/dokumen` sesuai kode. **Belum terbukti:** deploy dan secret di proyekmu, balasan `destroy` asli, PostgREST asli, gestur Android |
 | 2026-10-19 | 0.10 | Fase 5 dicentang (5.0 sampai 5.9) berdasarkan laporan pengguna (selesai 2026-10-18, setelah koreksi `curl`); fase berjalan menjadi Fase 6. Fase 6 diperinci menjadi tugas 6.0 sampai 6.12 dan panduan Fase 6 ditulis. Ditambah K31 sampai K39 (alat diganti dari rencana awal: `PanResponder` bukan Gesture Handler + Reanimated, `node --test` bukan Jest, `buildCloudinaryUrl(urlAsli, ...)` bukan `publicId`), backlog B16 sampai B20, dan baris risiko gestur. **Koreksi dan temuan:** (1) sintaks transformasi diuji ke akun Cloudinary: `e_brightness:-100` ditolak ("Brightness must be > -100"), jadi kode memotong ke -99; (2) catatan lama "tiap URL unik = 1 kredit" keliru: 1.000 transformasi = 1 kredit dan transformasi unik dihitung sekali, sehingga risiko kuota dari pratinjau kecil (akun per 2026-10-18: 47 transformasi, 0,22 dari 25 kredit, mayoritas penyimpanan); gambar turunan hasil uji saya dibersihkan; (3) uji web menemukan titik tarik crop di sudut yang menempel tepi tidak bisa disentuh (area sentuh 48 dp berpusat di sudut foto, separuhnya terpotong); diperbaiki dengan inset area foto dan overlay yang lebih besar setengah area sentuh; (4) chip filter memanjang ke bawah (`flexGrow: 0`); (5) label aksesibilitas tombol putar kini memuat derajat; `Slider` mendapat padanan `aria-*` untuk web; (6) hasil putar ulang panduan: 0 galat typecheck setelah tiap berkas, kecuali satu galat sementara di `kamera.tsx` setelah `DaftarHalaman.tsx` diganti. Rujukan `docs/` dan `tests/` pada struktur proyek diperbarui |
 | 2026-10-17 | 0.9 | Fase 4 dicentang (4.0 sampai 4.9) berdasarkan laporan pengguna (hasil uji orientasi foto belum dirinci); fase berjalan menjadi Fase 5. Fase 5 diperinci menjadi tugas 5.0 sampai 5.9 dan panduan Fase 5 ditulis. Ditambah K27 sampai K30, backlog B14 dan B15, dan baris risiko unsigned preset. **Koreksi dan temuan:** (1) K23 v0.8 berharap Fase 5 mengunggah per halaman segera setelah "Pakai foto"; diganti K27 (unggah saat Simpan dokumen) karena unggahan tanpa tanda tangan tidak bisa dihapus dan urut ulang akan meninggalkan unggahan terbuang; catatan diagram ikut diubah. (2) Rincian parameter metode `upload` pada dokumentasi Cloudinary tidak terbaca utuh (halaman referensi memuat navigasi saja), jadi tugas 5.1 mewajibkan bukti `curl` oleh pengguna. (3) Klaim "0 galat typecheck di tiap tahap" ternyata keliru saat diputar ulang: ada satu galat sementara di `kamera.tsx` antara langkah 8.1 dan 8.3; panduan menjelaskannya. (4) Rujukan "normalisasi di 4.5" pada tabel risiko diperbaiki menjadi 4.3 |
 | 2026-10-16 | 0.8 | Fase 3 dicentang (3.0 sampai 3.9) berdasarkan laporan pengguna; 2.0 dan 2.9 ikut dicentang karena ditutup di tugas 3.0; fase berjalan menjadi Fase 4. Fase 4 diperinci menjadi tugas 4.0 sampai 4.9 (urutan mengikuti urutan pengerjaan; pemetaan dari v0.7 dicatat di bagian Fase 4) dan panduan Fase 4 ditulis. Ditambah K23 sampai K26 dan backlog B11 sampai B13. **Koreksi dan temuan:** dokumentasi daring `expo-image-manipulator` memuat API SDK 58, jadi tipe SDK 54 diperiksa langsung di `node_modules` (`manipulate`, `renderAsync`, `saveAsync`, `release` tersedia di versi 14.0.8); uji menemukan cacat sesi scan yang muncul lagi setelah keluar lalu masuk dengan akun yang sama dan sudah diperbaiki (state sesi diatur ulang saat pemilik berubah); `cek-kontras` menjadi 16 pasangan |
@@ -484,3 +507,11 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 - Expo, `expo-image` SDK 54 (diakses 2026-10-18): https://docs.expo.dev/versions/v54.0.0/sdk/image/
 - React Native, PanResponder (diakses 2026-10-18): https://reactnative.dev/docs/panresponder
 - Node.js, `node --test` (diakses 2026-10-18): https://nodejs.org/api/test.html
+- Supabase, secret Edge Functions (`supabase secrets set`, `--env-file`, awalan `SUPABASE_` dicadangkan, variabel bawaan termasuk `SUPABASE_PUBLISHABLE_KEYS`; diakses 2026-10-21): https://supabase.com/docs/guides/functions/secrets
+- Supabase CLI, `functions deploy` (flag `--use-api`, `--no-verify-jwt`; diakses 2026-10-21): https://supabase.com/docs/reference/cli/supabase-functions-deploy
+- Supabase, deploy Edge Functions (diakses 2026-10-21): https://supabase.com/docs/guides/functions/deploy
+- Cloudinary, menghapus aset (`destroy`, `invalidate`, tanda tangan dibuat di sisi server; diakses 2026-10-21): https://cloudinary.com/documentation/delete_assets
+- Cloudinary, tanda tangan otentikasi (contoh resmi dipakai sebagai vektor uji): https://cloudinary.com/documentation/authentication_signatures
+- Cloudinary Support, `destroy` mengembalikan `{ result: 'not found' }` bila `resource_type` salah atau aset tidak ada (diakses 2026-10-21): https://support.cloudinary.com/hc/en-us/community/posts/6263540034450-Destroy-returning-not-found-
+- TanStack Query v5, infinite queries dan `useInfiniteQuery`: https://tanstack.com/query/v5/docs/framework/react/guides/infinite-queries
+- Perilaku ulang bawaan `postgrest-js` 2.117.3 (GET diulang 3 kali dengan jeda 1, 2, 4 detik; dimatikan dengan `.retry(false)`): dibaca langsung dari kode paket di `node_modules/@supabase/postgrest-js/src/PostgrestBuilder.ts` (2026-10-21)

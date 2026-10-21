@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 
 import { LoadingScreen } from '@/components';
 import { AuthProvider, ProfileErrorScreen, useAuth } from '@/features/auth';
+import { QueryProvider } from '@/features/dokumen';
 import { ScanSessionProvider } from '@/features/scan';
 import { stackScreenOptions } from '@/theme';
 
@@ -32,9 +33,11 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <StatusBar style="dark" />
-      <ScanSessionProvider>
-        <RootNavigator />
-      </ScanSessionProvider>
+      <QueryProvider>
+        <ScanSessionProvider>
+          <RootNavigator />
+        </ScanSessionProvider>
+      </QueryProvider>
     </AuthProvider>
   );
 }
@@ -76,4 +79,3 @@ function RootNavigator() {
     </Stack>
   );
 }
-
