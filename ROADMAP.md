@@ -3,9 +3,9 @@
 Aplikasi Android untuk memindai dokumen, merapikan hasilnya, dan menyimpannya di cloud.
 Stack: Expo SDK 54 (React Native), Supabase, Cloudinary.
 
-- Versi dokumen: 0.11
-- Terakhir diperbarui: 2026-10-21
-- Fase berjalan: **Fase 7 (Dashboard dan manajemen dokumen)**, panduan `docs/panduan-fase-7.md`. Fase 0 sampai 6 selesai (centang berdasarkan laporan pengguna; Fase 6 dilaporkan selesai pada 2026-10-20 tanpa rincian hasil uji HP dan pemantauan kuota Cloudinary 6.11; hasil uji orientasi foto Fase 4 juga belum dirinci). Panduan lain: `docs/panduan-fase-0.md`, `docs/panduan-fase-1.md`, `docs/panduan-fase-2.md`, `docs/panduan-fase-3.md`, `docs/panduan-fase-4.md`, `docs/panduan-fase-5.md`, `docs/panduan-fase-6.md`, `docs/panduan-supabase.md`
+- Versi dokumen: 0.12
+- Terakhir diperbarui: 2026-10-30
+- Fase berjalan: **Fase 8 (Panel admin)**, panduan `docs/panduan-fase-8.md`. Fase 0 sampai 7 selesai (centang berdasarkan laporan pengguna; Fase 7 dilaporkan selesai pada 2026-10-25 tanpa rincian hasil uji HP dan angka kuota Cloudinary; Fase 6 dilaporkan selesai pada 2026-10-20 tanpa rincian hasil uji HP dan pemantauan 6.11; hasil uji orientasi foto Fase 4 juga belum dirinci). Panduan lain: `docs/panduan-fase-0.md` sampai `docs/panduan-fase-7.md`, `docs/panduan-supabase.md`
 
 ---
 
@@ -95,11 +95,19 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 | K46 | Paginasi, pencarian, filter | Offset 20 baris (`range`), urut `dibuat_pada` lalu `id` menurun; pencarian `ilike %kata%` ditunda 400 ms, maksimal 100 karakter, karakter `%`, `_`, `\` di-escape; filter status; semuanya di server | Cepat untuk ratusan dokumen; tidak ada duplikat meski dokumen baru menggeser baris (`gabungTanpaGanda`) | `ilike '%...%'` tidak memakai indeks biasa (cukup untuk ratusan baris; B22); satu permintaan tambahan bila total persis kelipatan 20 |
 | K47 | Dashboard hanya dokumen sendiri | Kueri daftar dan detail memfilter `user_id` secara eksplisit | RLS mengizinkan admin membaca semua dokumen; tanpa filter, Dashboard admin menampilkan dokumen semua orang | Dokumen orang lain baru terlihat lewat panel admin (Fase 8) |
 | K48 | Detail dokumen | `FlatList` mendatar dengan `pagingEnabled`, plus tombol panah dan penanda "Halaman n dari m"; tombol **Percantik halaman ini** membuka editor | Bisa digeser dan bisa dioperasikan tanpa gestur (aksesibilitas) | Zoom cubit belum ada (B24) |
+| K49 | Email di panel admin | Kolom baru `profiles.email`, disalin dari `auth.users` oleh trigger (akun baru dan ganti email) dan diisi untuk akun lama oleh migrasi | Admin bisa melihat dan mencari email tanpa membuka skema `auth` (tidak terekspos ke klien); satu tabel untuk daftar | Data email ada dua tempat (disinkronkan trigger); pengguna bisa membaca emailnya sendiri di barisnya (sudah miliknya) |
+| K50 | Cara admin membaca data | Fungsi RPC `admin_statistik`, `admin_daftar_pengguna`, `admin_daftar_dokumen`, `admin_daftar_log` (`security definer`, **baris pertama memeriksa `is_admin()`**, galat 42501 bila bukan admin); detail satu dokumen memakai tabel dan RLS admin yang sudah ada | Hitungan, gabungan tabel, dan pencarian email dalam satu panggilan yang bisa diuji di PostgreSQL; hak admin pada tabel tidak diperluas | Empat fungsi baru di skema `public` (sama seperti `is_admin`, lihat B8); tiap fungsi wajib menjaga pemeriksaan `is_admin()` di awal |
+| K51 | Urutan dan hak function admin | Kenali pemanggil dari JWT, **panggil `is_admin()` dengan JWT pemanggil**, baru buat klien dengan **secret key** (`SUPABASE_SECRET_KEYS`, cadangan `SUPABASE_SERVICE_ROLE_KEY`); non-admin selalu 403 sebelum isi permintaan diperiksa; log ditulis **setelah** aksi, gagal menulis = 500 `log_gagal` (aksi sudah terjadi) | Secret key tidak pernah dibuat untuk pemanggil yang bukan admin; non-admin tidak bisa menebak bentuk permintaan; tiap aksi nyata meninggalkan log | Aksi sukses tetapi log gagal menghasilkan galat meski data berubah (aplikasi menyegarkan data dan menampilkan pesan khusus); tidak ada transaksi lintas Cloudinary dan database |
+| K52 | Batasan sasaran aksi admin | Fungsi menolak (403 `target_dilarang`) bila sasaran adalah **diri sendiri** atau **akun admin lain**; mengubah status ke nilai yang sudah berlaku tidak mengubah apa pun dan **tidak ditulis ke log** | Admin tidak bisa mengunci atau menghapus dirinya atau admin lain lewat salah ketuk; log hanya berisi kejadian nyata | Akun admin hanya bisa diubah lewat SQL (dicatat di panduan) |
+| K53 | Hapus akun | Semua file Cloudinary milik pengguna dihapus dulu (paling banyak 4 bersamaan), baru `auth.admin.deleteUser` (profil, dokumen, halaman, dan efek ikut terhapus lewat cascade), lalu log; konfirmasi di aplikasi dengan **mengetik email akun** (atau HAPUS bila tanpa email) | Gagal di Cloudinary = akun utuh dan bisa diulang; konfirmasi sulit terlewat tanpa sengaja | Selama beberapa detik pengguna sasaran masih bisa menambah halaman yang lolos dari daftar file (B29); gagal hapus akun setelah file hilang meninggalkan gambar rusak sampai diulang |
+| K54 | Kode bersama function | Folder `supabase/functions/_shared/`: `cloudinary.ts` (tanda tangan, `destroy`, penghapusan paralel terbatas), `admin.ts` (kode galat, pemeriksaan admin, ringkasan log; murni, diuji `npm test`), `server.ts` (perekat Deno); `delete-document` ikut dialihkan ke `_shared` dan harus **di-deploy ulang** | Satu salinan kode penghapusan untuk empat function; folder `_shared` adalah anjuran dokumentasi Supabase | **Belum terbukti** bahwa `--use-api` membundel impor `../_shared/*.ts` di proyekmu; deploy `delete-document` dulu sebagai uji (aman: deploy yang gagal tidak mengganti versi lama) |
+| K55 | Arti "nonaktif" | `profiles.is_aktif = false`: RLS dan `is_aktif_user()` memblokir baca dan tulis dokumen; **sesi yang sedang berjalan tidak dicabut** (token masih sah sampai kedaluwarsa, tetapi data kosong atau ditolak); dokumen tidak dihapus | Reversibel dan sederhana | Pengguna nonaktif masih bisa membuka aplikasi sampai keluar; pencabutan sesi dicatat di B26 |
+| K56 | Komponen bersama panel admin | `ListaBerhalaman` (daftar berhalaman: skeleton, galat, pull-to-refresh, muat otomatis) untuk tiga daftar admin; `PagerHalaman` diambil dari detail dokumen Fase 7 dan dipakai juga di detail admin; `Card` diberi prop `accessible` | Tidak menulis ulang logika daftar tiga kali; satu perilaku pager | `DetailDokumen` (Fase 7) berubah karena refaktor (diuji ulang: e2e Fase 7) |
 
 ### Dampak ke diagram yang sudah dibuat
 
 - **Flowchart dan activity diagram:** urutannya berubah. Foto diunggah dulu setelah **Simpan dokumen** (K27; sebelum v0.9 tertulis setelah "Pakai foto"), baru dipercantik, karena efek dihitung Cloudinary dari foto yang sudah diunggah. Kotak "Auto-crop tepi dokumen" menjadi "Crop tepi dokumen (manual)".
-- **ERD:** `USERS` → `profiles`, dan kolom `password_hash` serta `email` pindah ke Supabase Auth. Entitas lain tetap.
+- **ERD:** `USERS` → `profiles`, dan kolom `password_hash` pindah ke Supabase Auth; `email` juga dikelola Supabase Auth, tetapi disalin ke `profiles.email` sejak Fase 8 (K49). Entitas lain tetap.
 - Diagram di folder `docs/` diperbarui di Fase 10.
 
 ---
@@ -108,7 +116,7 @@ Fakta teknis di bawah diverifikasi pada 2026-10-10 (sumber di bagian 10). Item b
 
 | Entitas ERD | Tabel Postgres | Kolom (tipe) | Catatan |
 |---|---|---|---|
-| USERS | `profiles` | `id` uuid PK, FK ke `auth.users`; `nama` text; `role` enum(`user`,`admin`) default `user`; `is_aktif` bool default true; `dibuat_pada` timestamptz | Dibuat otomatis saat daftar lewat trigger. Pengguna tidak boleh mengubah `role` dan `is_aktif` sendiri |
+| USERS | `profiles` | `id` uuid PK, FK ke `auth.users`; `nama` text; `role` enum(`user`,`admin`) default `user`; `is_aktif` bool default true; `dibuat_pada` timestamptz; `email` text (Fase 8, K49) | Dibuat otomatis saat daftar lewat trigger. Pengguna tidak boleh mengubah `role` dan `is_aktif` sendiri. `email` disalin dari `auth.users` agar admin bisa melihat dan mencarinya |
 | DOKUMEN | `dokumen` | `id` uuid PK; `user_id` FK `profiles`; `judul` text; `status` enum(`draft`,`selesai`); `jumlah_halaman` int default 0; `dibuat_pada` timestamptz | `jumlah_halaman` dijaga trigger dari `halaman_dokumen` |
 | HALAMAN_DOKUMEN | `halaman_dokumen` | `id` uuid PK; `dokumen_id` FK cascade; `urutan` int; `url_asli` text; `url_hasil` text; `public_id` text; `ukuran_byte` int | `UNIQUE (dokumen_id, urutan)` |
 | EFEK_FOTO | `efek_foto` | `id` uuid PK; `halaman_id` FK unik cascade; `jenis_filter` enum(`asli`,`dokumen`,`hitam_putih`,`abu_abu`,`tajam`); `kecerahan` int; `kontras` int; `rotasi` int (0/90/180/270); `data_crop` jsonb `{x,y,w,h}` | `data_crop` jsonb menggantikan string di ERD agar bisa divalidasi |
@@ -126,7 +134,7 @@ scannest/
 │  ├─ (tabs)/                 # index.tsx (Dashboard), kamera.tsx, percantik.tsx
 │  ├─ dokumen/[id].tsx
 │  ├─ editor/[halamanId].tsx
-│  ├─ admin/                  # index.tsx, pengguna.tsx, dokumen.tsx, log.tsx (folder biasa, K14)
+│  ├─ admin/                  # index.tsx, pengguna.tsx, log.tsx, dokumen/index.tsx, dokumen/[id].tsx (folder biasa, K14)
 │  └─ +not-found.tsx          # halaman 404
 ├─ src/
 │  ├─ components/             # Button, Card, EmptyState, ...
@@ -135,10 +143,10 @@ scannest/
 │  └─ theme/                  # warna, spasi, tipografi
 ├─ supabase/
 │  ├─ migrations/             # SQL skema + RLS
-│  └─ functions/              # Edge Functions (delete-document: Fase 7, logic.ts diuji `npm test`)
+│  └─ functions/              # Edge Functions: delete-document (Fase 7), admin-set-user-active, admin-delete-user, admin-delete-document (Fase 8), _shared/ (K54); logic.ts diuji `npm test`
 ├─ scripts/cek-kontras.mjs    # cek kontras warna (Fase 1, tugas 1.2)
-├─ docs/                      # panduan-fase-0.md sampai panduan-fase-7.md, panduan-supabase.md; ERD dan diagram di Fase 10
-├─ tests/                     # uji unit `node --test` (Fase 6 dan 7)
+├─ docs/                      # panduan-fase-0.md sampai panduan-fase-8.md, panduan-supabase.md; ERD dan diagram di Fase 10
+├─ tests/                     # uji unit `node --test` (Fase 6, 7, dan 8)
 ├─ ROADMAP.md  README.md
 ├─ .env.example  .env (lokal, tidak di-commit)
 ├─ .prettierrc  .prettierignore  eslint.config.js   # Fase 0, tugas 0.4
@@ -334,33 +342,37 @@ Status 2026-10-20: **selesai menurut laporan pengguna** ("untuk fase 6 sudah sel
 
 Panduan rinci: `docs/panduan-fase-7.md`. Nomor 7.1 sampai 7.7 sama dengan v0.10 (isinya diperinci; beberapa alat berubah: K40, K43, K44); 7.0 dan 7.8 ditambahkan di v0.11. Kerjakan di cabang `fase-7-dashboard`. Dashboard menampilkan dokumen milik sendiri (K47); hapus berjalan lewat Edge Function `delete-document` (K40 sampai K42).
 
-Kodenya sudah teruji sebagai aplikasi web (React Native Web, Chromium) melawan **database, Cloudinary, dan Edge Function tiruan**: 75 pemeriksaan e2e (daftar 60 dokumen dengan skeleton dan paginasi, pencarian dan filter, empty state dan galat, detail dan pager, ganti nama, hapus dengan skenario batal, 502, 404, 403, jaringan putus, dan sukses; layar 360 px), regresi Fase 6 (101) dan Fase 5 (48) lulus, **81 uji unit** (`npm test`: 34 lama + 47 baru, termasuk vektor tanda tangan Cloudinary dari dokumentasi). Edge Function lolos `deno check` dan **dijalankan di Deno 2.9.6** melawan server Supabase dan Cloudinary tiruan (15 skenario: urutan hapus file lalu baris, tanda tangan dihitung ulang oleh penerima, 401, 403, 404, 502). Skrip seed 55 dokumen diuji di PostgreSQL 16 dengan migrasi Fase 2. **Belum terbukti** (hanya bisa dibuktikan pengguna): function terpasang di proyekmu (secret terbaca, `verify_jwt`), balasan `destroy` asli dari Cloudinary dan apakah gambar turunan ikut terhapus, perilaku PostgREST asli untuk `halaman_dokumen.limit=1` dan `ilike`, gestur geser pager dan pull-to-refresh di Android, serta kelancaran 55 dokumen di HP.
+Status 2026-10-25: **selesai menurut laporan pengguna** ("untuk tahap 7 ini sudah selesai semua"; rincian hasil uji HP, hasil hapus nyata di Media Library, dan angka pemakaian Cloudinary belum dilaporkan). Sebelumnya: kodenya sudah teruji sebagai aplikasi web (React Native Web, Chromium) melawan **database, Cloudinary, dan Edge Function tiruan**: 75 pemeriksaan e2e (daftar 60 dokumen dengan skeleton dan paginasi, pencarian dan filter, empty state dan galat, detail dan pager, ganti nama, hapus dengan skenario batal, 502, 404, 403, jaringan putus, dan sukses; layar 360 px), regresi Fase 6 (101) dan Fase 5 (48) lulus, **81 uji unit** (`npm test`: 34 lama + 47 baru, termasuk vektor tanda tangan Cloudinary dari dokumentasi). Edge Function lolos `deno check` dan **dijalankan di Deno 2.9.6** melawan server Supabase dan Cloudinary tiruan (15 skenario: urutan hapus file lalu baris, tanda tangan dihitung ulang oleh penerima, 401, 403, 404, 502). Skrip seed 55 dokumen diuji di PostgreSQL 16 dengan migrasi Fase 2. **Belum terbukti** (hanya bisa dibuktikan pengguna): function terpasang di proyekmu (secret terbaca, `verify_jwt`), balasan `destroy` asli dari Cloudinary dan apakah gambar turunan ikut terhapus, perilaku PostgREST asli untuk `halaman_dokumen.limit=1` dan `ilike`, gestur geser pager dan pull-to-refresh di Android, serta kelancaran 55 dokumen di HP.
 
-- [ ] 7.0 Tutup Fase 6 dan persiapan: `main` bersih dan Fase 6 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-7-dashboard`, `npm install @tanstack/react-query`; laporkan hasil uji HP Fase 6 dan angka pemakaian Cloudinary (6.11) bila ada.
-- [ ] 7.1 Daftar dokumen di Dashboard: `FlatList`, pull-to-refresh, paginasi 20 baris, TanStack Query (K44, K46, K47); disegarkan saat layar kembali terlihat.
-- [ ] 7.2 Gambar mini dari `url_hasil` dengan `c_fill,g_north,h_300,w_300,f_auto,q_auto` di akhir rantai efek (K43), ditampilkan dengan `expo-image` (cache disk).
-- [ ] 7.3 Detail dokumen: geser antar halaman, tombol panah, penanda "Halaman n dari m", tampil `url_hasil` dengan `c_limit,h_1200` (K43, K48), tombol **Percantik halaman ini**.
-- [ ] 7.4 Ganti nama dokumen (dialog, validasi 1 sampai 120 karakter, galat di dalam dialog).
-- [ ] 7.5 Hapus dokumen lewat Edge Function `delete-document` (K40 sampai K42): deploy, atur secret Cloudinary, uji `curl`; hapus file di Cloudinary lebih dulu, baru baris (halaman dan efek ikut terhapus lewat cascade); dialog konfirmasi dan pesan galat per kasus.
-- [ ] 7.6 Pencarian judul (ditunda 400 ms) dan filter status Semua, Draft, Selesai, dapat digabung (K46).
-- [ ] 7.7 Empty state (belum ada dokumen, tidak ada hasil) dan skeleton loading di daftar dan detail.
-- [ ] 7.8 Uji di HP memakai daftar di panduan 9.2, termasuk 55 dokumen uji lewat skrip seed (9.1), hapus nyata yang dicek di Media Library Cloudinary, pemantauan kuota, lalu commit, pull request, CI hijau, merge.
+- [x] 7.0 Tutup Fase 6 dan persiapan: `main` bersih dan Fase 6 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-7-dashboard`, `npm install @tanstack/react-query`; laporkan hasil uji HP Fase 6 dan angka pemakaian Cloudinary (6.11) bila ada.
+- [x] 7.1 Daftar dokumen di Dashboard: `FlatList`, pull-to-refresh, paginasi 20 baris, TanStack Query (K44, K46, K47); disegarkan saat layar kembali terlihat.
+- [x] 7.2 Gambar mini dari `url_hasil` dengan `c_fill,g_north,h_300,w_300,f_auto,q_auto` di akhir rantai efek (K43), ditampilkan dengan `expo-image` (cache disk).
+- [x] 7.3 Detail dokumen: geser antar halaman, tombol panah, penanda "Halaman n dari m", tampil `url_hasil` dengan `c_limit,h_1200` (K43, K48), tombol **Percantik halaman ini**.
+- [x] 7.4 Ganti nama dokumen (dialog, validasi 1 sampai 120 karakter, galat di dalam dialog).
+- [x] 7.5 Hapus dokumen lewat Edge Function `delete-document` (K40 sampai K42): deploy, atur secret Cloudinary, uji `curl`; hapus file di Cloudinary lebih dulu, baru baris (halaman dan efek ikut terhapus lewat cascade); dialog konfirmasi dan pesan galat per kasus.
+- [x] 7.6 Pencarian judul (ditunda 400 ms) dan filter status Semua, Draft, Selesai, dapat digabung (K46).
+- [x] 7.7 Empty state (belum ada dokumen, tidak ada hasil) dan skeleton loading di daftar dan detail.
+- [x] 7.8 Uji di HP memakai daftar di panduan 9.2, termasuk 55 dokumen uji lewat skrip seed (9.1), hapus nyata yang dicek di Media Library Cloudinary, pemantauan kuota, lalu commit, pull request, CI hijau, merge.
 
 **Selesai bila:** CRUD dokumen lengkap (daftar, detail, ganti nama, hapus); hapus benar-benar menghilangkan file di Cloudinary dan baris di database; daftar tetap lancar dengan 50+ dokumen uji; Dashboard hanya menampilkan dokumen milik sendiri; tidak ada rahasia di aplikasi atau repo (API secret Cloudinary hanya di secret function); `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau.
 
 ### Fase 8 — Panel admin
 
-Semua aksi yang mengubah data berjalan lewat Edge Function yang memverifikasi JWT dan `role = admin`, lalu menulis `log_aktivitas` di sisi server.
+Panduan rinci: `docs/panduan-fase-8.md`. Nomor 8.1 sampai 8.7 sama dengan v0.11; 8.0 dan 8.8 ditambahkan di v0.12. Kerjakan di cabang `fase-8-admin`. Semua aksi yang mengubah data berjalan lewat Edge Function yang memverifikasi JWT dan `role = admin` (K51), lalu menulis `log_aktivitas` di sisi server; pembacaan admin lewat fungsi RPC yang menolak non-admin (K50).
 
-- [ ] 8.1 Edge Functions: `admin-set-user-active`, `admin-delete-user`, `admin-delete-document`, memakai service role key yang hanya ada di sisi Supabase.
-- [ ] 8.2 Setiap function menolak pemanggil non-admin dan menulis baris `log_aktivitas`.
-- [ ] 8.3 Layar statistik: jumlah pengguna, dokumen, halaman, dan total `ukuran_byte`.
-- [ ] 8.4 Kelola pengguna: daftar, cari, aktifkan atau nonaktifkan, hapus akun (dengan konfirmasi dan pembersihan file Cloudinary miliknya).
-- [ ] 8.5 Tinjau dokumen: daftar semua dokumen, lihat, hapus.
-- [ ] 8.6 Log aktivitas: daftar terbaru dengan filter aksi dan admin.
-- [ ] 8.7 Uji penolakan: akun user biasa memanggil function admin dan harus ditolak.
+Kodenya sudah teruji sebagai aplikasi web (React Native Web, Chromium) melawan **database dan Edge Function tiruan**: **88 pemeriksaan e2e** (akses panel untuk user biasa dan admin; statistik dengan skeleton, galat, dan Coba lagi; pengguna: paginasi 47 baris, pencarian, filter aktif dan nonaktif, nonaktifkan dan aktifkan, hapus akun dengan konfirmasi ketik email dan semua jalur galat; dokumen: daftar, pencarian judul dan pemilik, detail, hapus; log: filter aksi dan admin, admin yang sudah dihapus; alur utuh aksi lalu log), regresi Fase 7 (74 dari 75; satu pemeriksaan roda mouse pada pager gagal juga pada build Fase 7 asli di mesin uji saat ini, jadi bukan akibat Fase 8), Fase 6 (101) dan Fase 5 (48); **127 uji unit** (`npm test`: 81 lama + 46 baru). Migrasi dan fungsi RPC diuji di PostgreSQL 16 (10 uji penolakan dan akses, backfill dan sinkron email, `service_role` tanpa hak lain). Tiga Edge Function **dijalankan di Deno 2.9.6** melawan server Supabase dan Cloudinary tiruan (52 skenario: user biasa dan token palsu ditolak di ketiganya **tanpa secret key dipakai dan tanpa data disentuh**, tanda tangan Cloudinary benar, 1.203 file dibaca lewat tiga halaman RPC, file dihapus sebelum baris atau akun, log tertulis, sasaran terlarang, dan semua jalur galat) dan `delete-document` lolos regresi 15 skenario setelah refaktor. **Belum terbukti** (hanya bisa dibuktikan pengguna): deploy dengan impor `_shared` di proyekmu (K54), `SUPABASE_SECRET_KEYS` dan `auth.admin.deleteUser` di proyek asli, balasan `destroy` asli untuk banyak file, PostgREST asli menerima argumen RPC dan enum `p_status`, serta gestur dan tampilan di Android.
 
-**Selesai bila:** keempat layar admin berfungsi, setiap aksi tercatat di log, dan user biasa tidak bisa menembus function admin.
+- [ ] 8.0 Tutup Fase 7 dan persiapan: `main` bersih dan Fase 7 sudah digabung, salin `ROADMAP.md` dan `docs/` terbaru, cabang `fase-8-admin`; laporkan hasil uji HP Fase 7 dan angka pemakaian Cloudinary bila ada.
+- [ ] 8.1 Edge Functions `admin-set-user-active`, `admin-delete-user`, `admin-delete-document` memakai secret key yang hanya ada di sisi Supabase (K51, K54); kode bersama di `_shared`; `delete-document` dialihkan ke `_shared`.
+- [ ] 8.2 Setiap function menolak pemanggil non-admin (403) dan menulis baris `log_aktivitas`; sasaran diri sendiri dan admin lain ditolak (K52).
+- [ ] 8.3 Layar statistik (`/admin`): jumlah pengguna (dan yang aktif), dokumen, halaman, dan total `ukuran_byte`, lewat `admin_statistik` (K50).
+- [ ] 8.4 Kelola pengguna: daftar, cari nama atau email, filter aktif atau nonaktif, nonaktifkan dan aktifkan (K55), hapus akun dengan konfirmasi ketik email dan pembersihan Cloudinary (K53).
+- [ ] 8.5 Tinjau dokumen: daftar semua dokumen (cari judul atau pemilik, filter status), detail dengan pager, hapus.
+- [ ] 8.6 Log aktivitas: daftar terbaru dengan filter jenis aksi dan admin.
+- [ ] 8.7 Uji penolakan: akun user biasa memanggil ketiga function dengan `curl` dan harus ditolak 403; token palsu dan tanpa token ditolak 401.
+- [ ] 8.8 Uji di HP memakai daftar di panduan, termasuk menghapus akun uji dan dokumen nyata yang dicek di Media Library Cloudinary; pantau kuota; lalu commit, pull request, CI hijau, merge.
+
+**Selesai bila:** keempat layar admin berfungsi, setiap aksi tercatat di log, dan user biasa tidak bisa menembus function admin; tidak ada secret key atau API secret di aplikasi atau repo; `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau.
 
 ### Fase 9 — Kualitas, keamanan, dan polish
 
@@ -418,6 +430,10 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | B23 | Samakan pembacaan Fase 6 (editor, tab Percantik) dengan K44: `.retry(false)` atau TanStack Query, agar galat jaringan tampil dalam hitungan detik, bukan ±7 detik | P2 | Fase 9 | Usulan |
 | B24 | Zoom cubit dan geser di detail halaman | P3 | Setelah Fase 9 | Usulan |
 | B25 | Pilih banyak dokumen lalu hapus sekaligus (antrean dan kemajuan di function) | P3 | Setelah v1.0.0 | Usulan |
+| B26 | Cabut sesi pengguna saat dinonaktifkan atau dihapus (mis. `auth.admin.signOut` atau penanda larangan di Supabase Auth) agar token yang masih berlaku tidak dipakai lagi (K55) | P2 | Fase 9 | Usulan |
+| B27 | Log aktivitas: filter rentang tanggal dan ekspor CSV | P3 | Setelah v1.0.0 | Usulan |
+| B28 | Angkat atau turunkan admin dari aplikasi (dengan log dan konfirmasi berlapis); sekarang hanya lewat SQL (K52) | P3 | Setelah v1.0.0 | Usulan |
+| B29 | Tutup celah unggah saat hapus akun: nonaktifkan akun sasaran sebelum membaca daftar file (K53) dan catat kedua langkah di log | P2 | Fase 9 | Usulan |
 
 ---
 
@@ -434,6 +450,9 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | Secret ikut ter-commit | Akun disalahgunakan | `.env` di `.gitignore`, hanya kunci publik di aplikasi, tinjau di 9.2 |
 | Hapus dokumen meninggalkan file yatim atau baris tanpa file | Kuota Cloudinary terbuang atau gambar rusak di daftar | Urutan hapus file lalu baris, aman diulang (K42); pantau Media Library; B15 dan B21 |
 | Balasan atau perilaku `destroy` Cloudinary berbeda dari dugaan (termasuk penghapusan gambar turunan) | Hapus gagal atau file turunan tersisa | Diuji di HP pada 7.8 (hapus nyata, cek Media Library dan URL lama); log function mencatat penyebabnya |
+| Secret key Supabase bocor atau dipakai untuk pemanggil non-admin | Seluruh data bisa dibaca atau dihapus | Hanya hidup di lingkungan function (variabel bawaan); klien secret key dibuat setelah `is_admin()` lolos (K51); diuji: user biasa dan token palsu tidak memicu pemakaian secret key; tidak ada di aplikasi atau repo |
+| Impor `_shared` gagal dibundel oleh `deploy --use-api` (K54) | Function admin tidak bisa dipasang | Deploy `delete-document` dulu (deploy gagal tidak mengganti versi lama); panduan memuat jalur cadangan |
+| Admin menghapus akun atau dokumen yang salah | Data pengguna hilang permanen | Konfirmasi ketik email (K53), dialog menyebut jumlah dokumen, sasaran diri sendiri dan admin ditolak (K52), semua aksi tercatat di log |
 | Scope membengkak | Rilis molor | Aturan prioritas bagian 0; improvisasi non-P0 masuk antrean |
 
 ---
@@ -454,6 +473,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 2026-10-30 | 0.12 | Fase 7 dicentang (7.0 sampai 7.8) berdasarkan laporan pengguna (2026-10-25, tanpa rincian uji HP dan angka kuota Cloudinary); fase berjalan menjadi Fase 8. Fase 8 diperinci menjadi tugas 8.0 sampai 8.8 dan panduan Fase 8 ditulis. Ditambah K49 sampai K56, backlog B26 sampai B29, tiga baris risiko, dan kolom `profiles.email` di pemetaan ERD. **Temuan dan koreksi:** (1) `profiles` belum punya email dan skema `auth` tidak bisa dibaca klien, jadi panel admin tidak bisa menampilkan atau mencari email; ditambah kolom `profiles.email` dengan trigger (K49); (2) rencana v0.11 menulis "service role key"; proyek baru memakai secret key (`sb_secret_...`) lewat `SUPABASE_SECRET_KEYS` (JSON `{"default": ...}`), dengan cadangan `SUPABASE_SERVICE_ROLE_KEY` (K51), dan dokumentasi menyatakan kunci baru tidak boleh dikirim lewat header `Authorization`; (3) `service_role` kini diberi GRANT tabel eksplisit di migrasi karena proyek baru bisa mewajibkannya (`auto_expose_new_tables`); (4) API membatasi 1.000 baris per permintaan, jadi daftar file milik satu pengguna dibaca per halaman lewat RPC `admin_public_id` (hanya `service_role`); (5) pemeriksaan "bukan admin" dijalankan sebelum validasi isi permintaan, sehingga user biasa selalu 403; (6) `tsconfig.json` perlu `allowImportingTsExtensions` karena `logic.ts` mengimpor `../_shared/*.ts` (gaya Deno) dan `_shared/server.ts` dikecualikan dari `tsc` dan ESLint seperti `index.ts`; (7) uji Deno menemukan harness lama menyimpan data tiruan di modul yang sama, diperbaiki dengan harness baru; (8) satu pemeriksaan e2e Fase 7 (roda mouse pada pager) gagal juga pada build Fase 7 asli di mesin uji saat ini; replika manual langkah yang sama lulus, jadi dicatat sebagai ketidakstabilan harness, bukan regresi. **Belum terbukti:** deploy `_shared` dengan `--use-api`, secret key dan `deleteUser` di proyekmu, `destroy` asli, PostgREST asli, Android |
 | 2026-10-21 | 0.11 | Fase 6 dicentang (6.0 sampai 6.12) berdasarkan laporan pengguna (2026-10-20, tanpa rincian uji HP dan pemantauan Cloudinary); fase berjalan menjadi Fase 7. Fase 7 diperinci menjadi tugas 7.0 sampai 7.8 dan panduan Fase 7 ditulis. Ditambah K40 sampai K48 (nama fungsi hapus menjadi `delete-document` bukan `delete-asset`; gambar mini `c_fill,g_north` bukan `c_fill,w_300`; TanStack Query dengan cache per pengguna; dialog buatan sendiri), backlog B21 sampai B25, dan dua baris risiko. **Temuan dan koreksi:** (1) gambar mini `c_fill,w_300` memotong bagian tengah dan membuang kop surat; diganti `c_fill,g_north,h_300,w_300` yang diuji ke akun Cloudinary lewat konektor (hasil 300×300 setelah rantai crop, putar, dan efek; gambar turunan uji dibersihkan); (2) RLS mengizinkan admin membaca semua dokumen, jadi daftar harus memfilter `user_id` (K47); (3) uji jaringan putus menemukan `postgrest-js` 2.117.3 mengulang GET 3 kali dengan jeda 1, 2, 4 detik, sehingga bersama ulang TanStack galat baru tampil ±16 detik; diperbaiki dengan `.retry(false)` dan satu lapis ulang (K44); layar Fase 6 masih punya perilaku lama (B23); (4) penanda halaman di detail sempat berkedip mundur saat tombol panah ditekan karena peristiwa gulir di tengah animasi menimpa nilai; diperbaiki; (5) Edge Function dan tsc: berkas `supabase/functions/*/index.ts` memakai API Deno, jadi dikecualikan dari `tsconfig.json` dan ESLint, sedangkan `logic.ts` (logika murni) tetap diperiksa dan diuji `npm test`; `index.ts` diperiksa dengan `deno check` di sandbox; (6) harness e2e Fase 5 disesuaikan karena Dashboard kini membaca tabel `dokumen` (bukan regresi aplikasi); (7) struktur proyek: `features/documents` menjadi `features/dokumen` sesuai kode. **Belum terbukti:** deploy dan secret di proyekmu, balasan `destroy` asli, PostgREST asli, gestur Android |
 | 2026-10-19 | 0.10 | Fase 5 dicentang (5.0 sampai 5.9) berdasarkan laporan pengguna (selesai 2026-10-18, setelah koreksi `curl`); fase berjalan menjadi Fase 6. Fase 6 diperinci menjadi tugas 6.0 sampai 6.12 dan panduan Fase 6 ditulis. Ditambah K31 sampai K39 (alat diganti dari rencana awal: `PanResponder` bukan Gesture Handler + Reanimated, `node --test` bukan Jest, `buildCloudinaryUrl(urlAsli, ...)` bukan `publicId`), backlog B16 sampai B20, dan baris risiko gestur. **Koreksi dan temuan:** (1) sintaks transformasi diuji ke akun Cloudinary: `e_brightness:-100` ditolak ("Brightness must be > -100"), jadi kode memotong ke -99; (2) catatan lama "tiap URL unik = 1 kredit" keliru: 1.000 transformasi = 1 kredit dan transformasi unik dihitung sekali, sehingga risiko kuota dari pratinjau kecil (akun per 2026-10-18: 47 transformasi, 0,22 dari 25 kredit, mayoritas penyimpanan); gambar turunan hasil uji saya dibersihkan; (3) uji web menemukan titik tarik crop di sudut yang menempel tepi tidak bisa disentuh (area sentuh 48 dp berpusat di sudut foto, separuhnya terpotong); diperbaiki dengan inset area foto dan overlay yang lebih besar setengah area sentuh; (4) chip filter memanjang ke bawah (`flexGrow: 0`); (5) label aksesibilitas tombol putar kini memuat derajat; `Slider` mendapat padanan `aria-*` untuk web; (6) hasil putar ulang panduan: 0 galat typecheck setelah tiap berkas, kecuali satu galat sementara di `kamera.tsx` setelah `DaftarHalaman.tsx` diganti. Rujukan `docs/` dan `tests/` pada struktur proyek diperbarui |
 | 2026-10-17 | 0.9 | Fase 4 dicentang (4.0 sampai 4.9) berdasarkan laporan pengguna (hasil uji orientasi foto belum dirinci); fase berjalan menjadi Fase 5. Fase 5 diperinci menjadi tugas 5.0 sampai 5.9 dan panduan Fase 5 ditulis. Ditambah K27 sampai K30, backlog B14 dan B15, dan baris risiko unsigned preset. **Koreksi dan temuan:** (1) K23 v0.8 berharap Fase 5 mengunggah per halaman segera setelah "Pakai foto"; diganti K27 (unggah saat Simpan dokumen) karena unggahan tanpa tanda tangan tidak bisa dihapus dan urut ulang akan meninggalkan unggahan terbuang; catatan diagram ikut diubah. (2) Rincian parameter metode `upload` pada dokumentasi Cloudinary tidak terbaca utuh (halaman referensi memuat navigasi saja), jadi tugas 5.1 mewajibkan bukti `curl` oleh pengguna. (3) Klaim "0 galat typecheck di tiap tahap" ternyata keliru saat diputar ulang: ada satu galat sementara di `kamera.tsx` antara langkah 8.1 dan 8.3; panduan menjelaskannya. (4) Rujukan "normalisasi di 4.5" pada tabel risiko diperbaiki menjadi 4.3 |
@@ -466,7 +486,7 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 | 2026-10-10 | 0.2 | Fase 0 dimulai. Hasil verifikasi: tag `latest` Expo sudah SDK 57 (wajib `--template default@sdk-54`); TypeScript strict dan ESLint sudah aktif di template; `.env` belum di-ignore template; cabang awal `master`; kunci Supabase memakai publishable key (K12, K13). Permintaan: tutorial Supabase dari nol, ditambahkan sebagai tugas 0.9 `[IMPROVISASI, P1]` dan migrasi serta uji RLS Fase 2 disiapkan lebih awal. Panduan baru di `docs/` |
 | 2026-10-10 | 0.1 | Roadmap pertama. Hasil verifikasi mengubah rancangan awal: percantik lewat Cloudinary (K7), crop manual (K8), `USERS` jadi `profiles` (K10), urutan alur unggah sebelum percantik |
 
-## 10. Sumber verifikasi (diakses 2026-10-10; tambahan Cloudinary diakses 2026-10-17 dan 2026-10-18)
+## 10. Sumber verifikasi (diakses 2026-10-10; tambahan Cloudinary diakses 2026-10-17 dan 2026-10-18; tambahan Supabase Fase 8 diakses 2026-10-30)
 
 - Expo SDK 54: https://expo.dev/changelog/sdk-54
 - expo-image-manipulator (SDK 54): https://docs.expo.dev/versions/v54.0.0/sdk/imagemanipulator/
@@ -515,3 +535,8 @@ Baris dengan status **Usulan** berasal dari Claude dan belum disetujui. Perminta
 - Cloudinary Support, `destroy` mengembalikan `{ result: 'not found' }` bila `resource_type` salah atau aset tidak ada (diakses 2026-10-21): https://support.cloudinary.com/hc/en-us/community/posts/6263540034450-Destroy-returning-not-found-
 - TanStack Query v5, infinite queries dan `useInfiniteQuery`: https://tanstack.com/query/v5/docs/framework/react/guides/infinite-queries
 - Perilaku ulang bawaan `postgrest-js` 2.117.3 (GET diulang 3 kali dengan jeda 1, 2, 4 detik; dimatikan dengan `.retry(false)`): dibaca langsung dari kode paket di `node_modules/@supabase/postgrest-js/src/PostgrestBuilder.ts` (2026-10-21)
+- Supabase, migrasi ke kunci publishable dan secret (`SUPABASE_SECRET_KEYS`, `SUPABASE_PUBLISHABLE_KEYS`, kunci baru dikirim lewat header `apikey`, bukan `Authorization`; diakses 2026-10-30): https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys
+- Supabase, mengamankan Edge Functions (`verify_jwt`, mode auth, variabel lingkungan; diakses 2026-10-30): https://supabase.com/docs/guides/functions/auth
+- Supabase, tips pengembangan Edge Functions (folder `_shared`; diakses 2026-10-30): https://supabase.com/docs/guides/functions/development-tips
+- Supabase JavaScript, `auth.admin.deleteUser`: https://supabase.com/docs/reference/javascript/auth-admin-deleteuser
+- Supabase, memanggil fungsi Postgres lewat `rpc` (argumen bernama, nilai bawaan): https://supabase.com/docs/reference/javascript/rpc

@@ -8,10 +8,12 @@ type CardProps = {
   /** Bila diisi, kartu bisa disentuh. */
   onPress?: () => void;
   accessibilityLabel?: string;
+  /** true: kartu (tanpa onPress) dibacakan sebagai satu kelompok dengan accessibilityLabel-nya. */
+  accessible?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-export function Card({ children, onPress, accessibilityLabel, style }: CardProps) {
+export function Card({ children, onPress, accessibilityLabel, accessible, style }: CardProps) {
   if (onPress) {
     return (
       <Pressable
@@ -25,7 +27,15 @@ export function Card({ children, onPress, accessibilityLabel, style }: CardProps
       </Pressable>
     );
   }
-  return <View style={[styles.card, style]}>{children}</View>;
+  return (
+    <View
+      accessible={accessible}
+      accessibilityLabel={accessible ? accessibilityLabel : undefined}
+      style={[styles.card, style]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -45,4 +55,3 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
 });
-

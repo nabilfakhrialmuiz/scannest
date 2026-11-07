@@ -1,13 +1,14 @@
-import { PlaceholderScreen } from '@/components';
+import { LoadingScreen, Screen } from '@/components';
+import { StatistikAdmin } from '@/features/admin';
+import { useAuth } from '@/features/auth';
 
 export default function AdminDashboardScreen() {
+  const { session } = useAuth();
+  const adminId = session?.user.id;
+  if (!adminId) return <LoadingScreen />;
   return (
-    <PlaceholderScreen
-      icon="shield-checkmark-outline"
-      title="Panel admin"
-      fase="Fase 8"
-      description="Ringkasan jumlah pengguna dan dokumen akan tampil di sini."
-      edges={['bottom']}
-    />
+    <Screen padded={false} edges={['bottom']}>
+      <StatistikAdmin adminId={adminId} />
+    </Screen>
   );
 }
