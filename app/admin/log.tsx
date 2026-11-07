@@ -1,13 +1,14 @@
-import { PlaceholderScreen } from '@/components';
+import { LoadingScreen, Screen } from '@/components';
+import { DaftarLog } from '@/features/admin';
+import { useAuth } from '@/features/auth';
 
 export default function AdminLogScreen() {
+  const { session } = useAuth();
+  const adminId = session?.user.id;
+  if (!adminId) return <LoadingScreen />;
   return (
-    <PlaceholderScreen
-      icon="time-outline"
-      title="Log aktivitas"
-      fase="Fase 8"
-      description="Riwayat aksi admin akan tampil di sini."
-      edges={['bottom']}
-    />
+    <Screen padded={false} edges={['bottom']}>
+      <DaftarLog adminId={adminId} />
+    </Screen>
   );
 }

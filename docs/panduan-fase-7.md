@@ -1,6 +1,6 @@
 # Panduan Fase 7: Dashboard dan Manajemen Dokumen (Scannest)
 
-**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 21 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.11 (Fase 7, tugas 7.0 sampai 7.8)
+**Untuk:** Nabil Fakhri Al Muiz · **Terakhir diperbarui:** 30 Oktober 2026 · **Sinkron dengan:** `ROADMAP.md` v0.12 (Fase 7, tugas 7.0 sampai 7.8; Fase 7 dilaporkan selesai pada 25 Oktober 2026)
 
 Setelah Fase 7 selesai, Dashboard menampilkan **semua dokumenmu** (gambar mini, judul, status, jumlah halaman, tanggal) dengan **pencarian judul**, **filter status**, dan **paginasi** 20 dokumen per muatan. Mengetuk dokumen membuka **detail**: halaman digeser mendatar, judul bisa **diganti**, dan dokumen bisa **dihapus**. Penghapusan berjalan lewat sebuah **Edge Function** Supabase yang menghapus file di Cloudinary lebih dulu, baru baris di database. Itulah pertama kalinya aplikasi ini memakai API secret Cloudinary, dan secret itu **hanya hidup di server**, tidak pernah di aplikasi.
 
@@ -2794,7 +2794,7 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 ## 10. Yang perlu diingat saat coding nanti
 
-1. **Fase 8 meniru pola ini.** `admin-delete-document` memakai ulang `tandatangani`, `hapusAsetCloudinary`, dan bentuk `prosesHapus`, tetapi dengan service role, pemeriksaan `role = admin`, dan penulisan `log_aktivitas`. Supabase mendukung folder `supabase/functions/_shared` untuk kode bersama; pindahkan `logic.ts` ke sana saat membuat fungsi kedua.
+1. **Fase 8 meniru pola ini.** `admin-delete-document` memakai ulang `tandatangani`, `hapusAsetCloudinary`, dan bentuk `prosesHapus`, tetapi dengan service role, pemeriksaan `role = admin`, dan penulisan `log_aktivitas`. Supabase mendukung folder `supabase/functions/_shared` untuk kode bersama; pindahkan `logic.ts` ke sana saat membuat fungsi kedua. **Sudah dilakukan di Fase 8** (`docs/panduan-fase-8.md`, K54): tanda tangan dan `destroy` kini ada di `_shared/cloudinary.ts`, dan `delete-document/logic.ts` mengimpornya (perilaku sama, perlu deploy ulang).
 2. **Hapus dokumen hanya lewat function.** Jangan memanggil `supabase.from('dokumen').delete()` dari aplikasi: itu meninggalkan file yatim di Cloudinary. Pencabutan hak `delete` langsung dicatat di B21.
 3. **API secret Cloudinary hanya di secret function.** Jangan masuk `.env` aplikasi dan jangan di-commit. Semua `EXPO_PUBLIC_*` terbaca dari APK.
 4. **Semua data dokumen berada di bawah kunci `['dokumen', userId, ...]`.** Fitur baru yang mengubah dokumen cukup memanggil `invalidateQueries({ queryKey: kunciDokumen.semua(userId) })`; daftar dan detail ikut segar. Layar yang kembali terlihat juga menyegarkan sendiri.
@@ -2837,17 +2837,17 @@ Buka pull request, tunggu **CI hijau**, **Merge**, lalu `git switch main` dan `g
 
 ## 12. Checklist akhir Fase 7
 
-Sama dengan "Selesai bila" Fase 7 di `ROADMAP.md`.
+Sama dengan "Selesai bila" Fase 7 di `ROADMAP.md`. Dicentang berdasarkan laporan penggunamu pada 25 Oktober 2026 ("tahap 7 sudah selesai semua"); rincian hasil uji HP dan angka kuota Cloudinary belum dilaporkan.
 
-- [ ] Fase 6 ditutup, cabang `fase-7-dashboard` dan `@tanstack/react-query` siap (7.0)
-- [ ] Daftar dokumen, gambar mini, pull-to-refresh, dan paginasi bekerja dengan 55 dokumen uji tanpa gulir patah (7.1, 7.2)
-- [ ] Detail: geser antar halaman, tombol panah, Percantik halaman ini (7.3)
-- [ ] Ganti nama bekerja dengan validasi dan galat di dalam dialog (7.4)
-- [ ] Function `delete-document` terpasang (secret dan `verify_jwt` benar); uji `curl` lulus; hapus nyata menghilangkan file di Cloudinary dan baris di database (7.5)
-- [ ] Pencarian dan filter bekerja, bisa digabung (7.6)
-- [ ] Empty state dan skeleton tampil di tempatnya (7.7)
-- [ ] Dashboard hanya menampilkan dokumen milik sendiri; tidak ada rahasia di aplikasi atau repo
-- [ ] `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau (7.8)
+- [x] Fase 6 ditutup, cabang `fase-7-dashboard` dan `@tanstack/react-query` siap (7.0)
+- [x] Daftar dokumen, gambar mini, pull-to-refresh, dan paginasi bekerja dengan 55 dokumen uji tanpa gulir patah (7.1, 7.2)
+- [x] Detail: geser antar halaman, tombol panah, Percantik halaman ini (7.3)
+- [x] Ganti nama bekerja dengan validasi dan galat di dalam dialog (7.4)
+- [x] Function `delete-document` terpasang (secret dan `verify_jwt` benar); uji `curl` lulus; hapus nyata menghilangkan file di Cloudinary dan baris di database (7.5)
+- [x] Pencarian dan filter bekerja, bisa digabung (7.6)
+- [x] Empty state dan skeleton tampil di tempatnya (7.7)
+- [x] Dashboard hanya menampilkan dokumen milik sendiri; tidak ada rahasia di aplikasi atau repo
+- [x] `typecheck`, `lint`, `format:check`, `cek:kontras`, `test` bersih; PR digabung dan CI hijau (7.8)
 
 ---
 

@@ -9,7 +9,8 @@ export default function AdminLayout() {
     <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen name="index" options={{ title: 'Panel admin' }} />
       <Stack.Screen name="pengguna" options={{ title: 'Pengguna' }} />
-      <Stack.Screen name="dokumen" options={{ title: 'Dokumen' }} />
+      <Stack.Screen name="dokumen/index" options={{ title: 'Dokumen' }} />
+      <Stack.Screen name="dokumen/[id]" options={{ title: 'Detail dokumen' }} />
       <Stack.Screen name="log" options={{ title: 'Log aktivitas' }} />
     </Stack>
   );

@@ -1,38 +1,17 @@
-import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import {
-  Banner,
-  Button,
-  Dialog,
-  EmptyState,
-  IconButton,
-  Screen,
-  Skeleton,
-  TextField,
-} from '@/components';
+import { Banner, Button, Dialog, EmptyState, Screen, Skeleton, TextField } from '@/components';
 import { colors, radius, spacing, typography } from '@/theme';
 
 import { formatTanggal, labelHalaman } from './daftar';
 import { pesanGalat } from './galat';
-import { urlTampil } from './gambar';
 import { kunciDokumen, useDetailDokumen, useHapusDokumen, useUbahJudul } from './hooks';
 import { LabelStatus } from './KartuDokumen';
 import { judulSchema } from './judul';
-import type { HalamanDetail } from './skema';
-
-const RASIO_HALAMAN = 4 / 3;
+import { PagerHalaman } from './PagerHalaman';
 
 // Detail dokumen (tugas 7.3-7.5): halaman digeser mendatar (atau lewat tombol panah), judul bisa
 // diganti, dan dokumen bisa dihapus setelah konfirmasi.
@@ -46,10 +25,7 @@ export function DetailDokumen({ userId, dokumenId }: { userId: string; dokumenId
   const [dialog, setDialog] = useState<'nama' | 'hapus' | null>(null);
   const [judulBaru, setJudulBaru] = useState('');
   const [galatJudul, setGalatJudul] = useState<string | null>(null);
-  const [lebar, setLebar] = useState(0);
   const [indeks, setIndeks] = useState(0);
-  const daftar = useRef<FlatList<HalamanDetail>>(null);
-  const tujuan = useRef<number | null>(null);
 
   // Segarkan tiap layar ini kembali terlihat (mis. setelah menyimpan efek di editor).
   const pertama = useRef(true);
@@ -103,32 +79,11 @@ export function DetailDokumen({ userId, dokumenId }: { userId: string; dokumenId
   const dokumen = q.data;
   const halaman = dokumen.halaman;
   const jumlah = halaman.length;
-  const tinggi = lebar > 0 ? Math.round(lebar * RASIO_HALAMAN) : 0;
 
   function keluar() {
     if (router.canGoBack()) router.back();
     else router.replace('/');
   }
-
-  const geser = (ke: number) => {
-    const sasaran = Math.max(0, Math.min(jumlah - 1, ke));
-    if (sasaran === indeks) return;
-    setIndeks(sasaran);
-    // Selama animasi menuju `sasaran`, peristiwa gulir di tengah jalan diabaikan supaya penanda
-    // "Halaman n dari m" tidak berkedip mundur lalu maju.
-    tujuan.current = sasaran;
-    daftar.current?.scrollToOffset({ offset: sasaran * lebar, animated: true });
-  };
-
-  const saatGulir = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (lebar <= 0) return;
-    const ke = Math.round(e.nativeEvent.contentOffset.x / lebar);
-    if (tujuan.current !== null) {
-      if (ke !== tujuan.current) return;
-      tujuan.current = null;
-    }
-    setIndeks(ke);
-  };
 
   const bukaGantiNama = () => {
     ubah.reset();
@@ -185,61 +140,8 @@ export function DetailDokumen({ userId, dokumenId }: { userId: string; dokumenId
           description="Dokumen ini belum punya halaman tersimpan."
         />
       ) : (
-        <View
-          onLayout={(e: LayoutChangeEvent) => setLebar(Math.round(e.nativeEvent.layout.width))}
-          style={styles.pager}
-        >
-          {lebar > 0 ? (
-            <FlatList
-              ref={daftar}
-              data={halaman}
-              keyExtractor={(h) => h.id}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onScroll={saatGulir}
-              onScrollBeginDrag={() => {
-                tujuan.current = null;
-              }}
-              scrollEventThrottle={16}
-              getItemLayout={(_, i) => ({ length: lebar, offset: lebar * i, index: i })}
-              initialNumToRender={2}
-              windowSize={3}
-              renderItem={({ item }) => (
-                <View style={{ width: lebar, height: tinggi }}>
-                  <Image
-                    source={{ uri: urlTampil(item.urlHasil) ?? item.urlHasil }}
-                    contentFit="contain"
-                    transition={150}
-                    accessibilityLabel={`Halaman ${item.urutan} dari ${dokumen.judul}`}
-                    style={styles.halaman}
-                  />
-                </View>
-              )}
-            />
-          ) : null}
-        </View>
+        <PagerHalaman halaman={halaman} judul={dokumen.judul} onIndeksBerubah={setIndeks} />
       )}
-
-      {jumlah > 0 ? (
-        <View style={styles.navigasi}>
-          <IconButton
-            icon="chevron-back"
-            label="Halaman sebelumnya"
-            onPress={() => geser(indeks - 1)}
-            disabled={indeks <= 0}
-          />
-          <Text accessibilityLiveRegion="polite" style={styles.penanda}>
-            Halaman {Math.min(indeks, jumlah - 1) + 1} dari {jumlah}
-          </Text>
-          <IconButton
-            icon="chevron-forward"
-            label="Halaman berikutnya"
-            onPress={() => geser(indeks + 1)}
-            disabled={indeks >= jumlah - 1}
-          />
-        </View>
-      ) : null}
 
       {halamanAktif ? (
         <Button
@@ -301,15 +203,6 @@ const styles = StyleSheet.create({
   atas: { gap: spacing.xs, alignItems: 'flex-start' },
   judul: { ...typography.heading, color: colors.text },
   info: { ...typography.caption, color: colors.textMuted },
-  pager: {
-    width: '100%',
-    overflow: 'hidden',
-    borderRadius: radius.lg,
-    backgroundColor: colors.border,
-  },
-  halaman: { width: '100%', height: '100%' },
-  navigasi: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  penanda: { ...typography.bodyStrong, color: colors.text },
   aksi: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
   kerangkaJudul: { height: 24, width: '60%' },
   kerangkaInfo: { height: 16, width: '40%' },
